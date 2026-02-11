@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharma EDA Platform - Advanced Analytics with AI</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #3498db;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --light: #ecf0f1;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            height: calc(100vh - 40px);
+        }
+
+        .main-content {
+            overflow-y: auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px 40px;
+        }
+
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        header p {
+            font-size: 1em;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            overflow-x: auto;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-tab {
+            padding: 15px 18px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: #495057;
+            transition: all 0.3s;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-tab:hover {
+            background: #e9ecef;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: var(--primary);
+            border-bottom: 3px solid var(--accent);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px 40px;
+            animation: fadeIn 0.3s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid #e9ecef;
+        }
+
+        .section-title {
+            color: var(--primary);
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: 600;
+            border-left: 4px solid var(--accent);
+            padding-left: 12px;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: 'Courier New', monospace;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--accent) 0%, #2980b9 100%);
+            color: white;
+            padding: 12px 28px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        button.secondary {
+            background: #6c757d;
+            margin-left: 10px;
+        }
+
+        button.danger {
+            background: var(--danger);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--accent) 0%, #2980b9 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card .label {
+            font-size: 11px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .result-box {
+            background: #f8f9fa;
+            border-left: 4px solid var(--success);
+            padding: 20px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+
+        .result-box.warning {
+            border-left-color: var(--warning);
+            background: #fff3cd;
+        }
+
+        .plot-container {
+            margin-top: 25px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        /* AI Chat Sidebar */
+        .ai-sidebar {
+            background: #f8f9fa;
+            border-left: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .ai-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .ai-header h3 {
+            font-size: 1.3em;
+            margin-bottom: 5px;
+        }
+
+        .ai-header p {
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+
+        .ai-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: white;
+        }
+
+        .ai-message {
+            margin-bottom: 15px;
+            padding: 12px 15px;
+            border-radius: 8px;
+            max-width: 90%;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .ai-message.user {
+            background: #e3f2fd;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .ai-message.ai {
+            background: #f1f3f5;
+        }
+
+        .ai-input-area {
+            padding: 15px;
+            border-top: 1px solid #dee2e6;
+            background: white;
+        }
+
+        .ai-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .ai-input-group input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .ai-input-group button {
+            padding: 12px 20px;
+            font-size: 14px;
+        }
+
+        /* Dynamic Variables */
+        .variable-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border: 1px solid #dee2e6;
+        }
+
+        .variable-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .variable-header h4 {
+            color: var(--primary);
+            font-size: 1em;
+        }
+
+        .viz-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .viz-option {
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .viz-option:hover {
+            border-color: var(--accent);
+            background: #e3f2fd;
+        }
+
+        .viz-option.active {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: white;
+        }
+
+        .api-setup {
+            background: #fff3cd;
+            border: 2px solid #f39c12;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .api-setup input {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            .ai-sidebar {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Main Content -->
+        <div class="main-content">
+            <header>
+                <h1>Pharma EDA Platform</h1>
+                <p>Advanced Analytics with AI-Powered Interpretation</p>
+            </header>
+
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="openTab('explorer')">Data Explorer</button>
+                <button class="nav-tab" onclick="openTab('multivar')">Multi-Variable Analysis</button>
+                <button class="nav-tab" onclick="openTab('tost')">TOST</button>
+                <button class="nav-tab" onclick="openTab('anova')">ANOVA</button>
+                <button class="nav-tab" onclick="openTab('spc')">SPC</button>
+                <button class="nav-tab" onclick="openTab('settings')">AI Settings</button>
+            </div>
+
+            <!-- Data Explorer Tab -->
+            <div id="explorer" class="tab-content active">
+                <div class="section">
+                    <h2 class="section-title">Data Explorer & Visualization</h2>
+                    
+                    <div class="info-box">
+                        <strong>Purpose:</strong> Explore your data with multiple visualization options. 
+                        Enter data and select visualization type to understand distribution, trends, and outliers.
+                    </div>
+
+                    <div class="input-group">
+                        <label>Dataset Name</label>
+                        <input type="text" id="explorerName" placeholder="e.g., Batch Purity Data" value="Sample Dataset">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Data Values (comma-separated)</label>
+                        <textarea id="explorerData" placeholder="99.5, 99.8, 100.1, 99.3, 100.5, 99.7, 100.2, 99.9, 100.3, 99.6">99.5, 99.8, 100.1, 99.3, 100.5, 99.7, 100.2, 99.9, 100.3, 99.6</textarea>
+                    </div>
+
+                    <label>Select Visualization Type</label>
+                    <div class="viz-options">
+                        <div class="viz-option active" onclick="selectViz('histogram')">Histogram</div>
+                        <div class="viz-option" onclick="selectViz('box')">Box Plot</div>
+                        <div class="viz-option" onclick="selectViz('scatter')">Scatter</div>
+                        <div class="viz-option" onclick="selectViz('bar')">Bar Chart</div>
+                        <div class="viz-option" onclick="selectViz('line')">Line Chart</div>
+                        <div class="viz-option" onclick="selectViz('violin')">Violin Plot</div>
+                    </div>
+
+                    <button onclick="visualizeData()">Generate Visualization</button>
+                    <button class="secondary" onclick="askAIAboutExplorer()">Ask AI to Interpret</button>
+
+                    <div id="explorerResults"></div>
+                    <div id="explorerPlot" class="plot-container"></div>
+                </div>
+            </div>
+
+            <!-- Multi-Variable Analysis Tab -->
+            <div id="multivar" class="tab-content">
+                <div class="section">
+                    <h2 class="section-title">Multi-Variable Analysis</h2>
+                    
+                    <div class="info-box">
+                        <strong>Purpose:</strong> Analyze multiple variables dynamically. Add variables, enter data, 
+                        and perform comparative analysis with flexible visualization options.
+                    </div>
+
+                    <div id="variablesList"></div>
+
+                    <button onclick="addVariable()">+ Add Variable</button>
+                    <button class="secondary" onclick="removeLastVariable()">- Remove Last</button>
+
+                    <div style="margin-top: 30px;">
+                        <label>Analysis Type</label>
+                        <select id="multivarAnalysis">
+                            <option value="compare">Compare Distributions</option>
+                            <option value="correlation">Correlation Analysis</option>
+                            <option value="trend">Trend Analysis</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <button onclick="analyzeMultivar()">Run Analysis</button>
+                        <button class="secondary" onclick="askAIAboutMultivar()">Ask AI to Interpret</button>
+                    </div>
+
+                    <div id="multivarResults"></div>
+                    <div id="multivarPlot" class="plot-container"></div>
+                </div>
+            </div>
+
+            <!-- TOST Tab -->
+            <div id="tost" class="tab-content">
+                <div class="section">
+                    <h2 class="section-title">TOST - Equivalence Testing</h2>
+                    
+                    <div class="info-box">
+                        <strong>Purpose:</strong> Demonstrate statistical equivalence between two processes or products.
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label>Reference Group Data</label>
+                            <textarea id="tostGroup1" placeholder="99.5, 99.8, 100.1">99.5, 99.8, 100.1, 99.3, 100.2</textarea>
+                        </div>
+                        <div class="input-group">
+                            <label>Test Group Data</label>
+                            <textarea id="tostGroup2" placeholder="99.7, 100.0, 99.9">99.7, 100.0, 99.9, 100.1, 99.8</textarea>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Equivalence Margin (± %)</label>
+                        <input type="number" id="tostMargin" value="2.0" step="0.1">
+                    </div>
+
+                    <button onclick="runTOST()">Run TOST Analysis</button>
+                    <button class="secondary" onclick="askAIAboutTOST()">Ask AI to Interpret</button>
+
+                    <div id="tostResults"></div>
+                    <div id="tostPlot" class="plot-container"></div>
+                </div>
+            </div>
+
+            <!-- ANOVA Tab -->
+            <div id="anova" class="tab-content">
+                <div class="section">
+                    <h2 class="section-title">ANOVA - Analysis of Variance</h2>
+                    
+                    <div class="info-box">
+                        <strong>Purpose:</strong> Test whether means of multiple groups are significantly different.
+                    </div>
+
+                    <div class="input-group">
+                        <label>Group 1 Name</label>
+                        <input type="text" id="anovaNameA" placeholder="e.g., Reactor A, Morning Shift, Batch 2024-01" value="Group A">
+                        <label style="margin-top: 10px;">Group 1 Data</label>
+                        <textarea id="anovaA" placeholder="98.5, 99.2, 98.8">98.5, 99.2, 98.8, 99.1</textarea>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Group 2 Name</label>
+                        <input type="text" id="anovaNameB" placeholder="e.g., Reactor B, Day Shift, Batch 2024-02" value="Group B">
+                        <label style="margin-top: 10px;">Group 2 Data</label>
+                        <textarea id="anovaB" placeholder="99.8, 100.2, 99.5">99.8, 100.2, 99.5, 100.0</textarea>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Group 3 Name</label>
+                        <input type="text" id="anovaNameC" placeholder="e.g., Reactor C, Night Shift, Batch 2024-03" value="Group C">
+                        <label style="margin-top: 10px;">Group 3 Data</label>
+                        <textarea id="anovaC" placeholder="100.5, 101.0, 100.8">100.5, 101.0, 100.8, 100.3</textarea>
+                    </div>
+
+                    <button onclick="runANOVA()">Run ANOVA</button>
+                    <button class="secondary" onclick="askAIAboutANOVA()">Ask AI to Interpret</button>
+
+                    <div id="anovaResults"></div>
+                    <div id="anovaPlot" class="plot-container"></div>
+                </div>
+            </div>
+
+            <!-- SPC Tab -->
+            <div id="spc" class="tab-content">
+                <div class="section">
+                    <h2 class="section-title">SPC - Statistical Process Control</h2>
+                    
+                    <div class="info-box">
+                        <strong>Purpose:</strong> Monitor process stability and detect out-of-control conditions.
+                    </div>
+
+                    <div class="input-group">
+                        <label>Process Data (time-series)</label>
+                        <textarea id="spcData" placeholder="99.5, 99.8, 100.1">99.5, 99.8, 100.1, 99.3, 100.5, 99.7, 100.2, 99.9</textarea>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label>Target Value</label>
+                            <input type="number" id="spcTarget" value="100" step="0.1">
+                        </div>
+                        <div class="input-group">
+                            <label>Sigma Multiplier</label>
+                            <input type="number" id="spcSigma" value="3" step="0.1">
+                        </div>
+                    </div>
+
+                    <button onclick="runSPC()">Generate Control Chart</button>
+                    <button class="secondary" onclick="askAIAboutSPC()">Ask AI to Interpret</button>
+
+                    <div id="spcResults"></div>
+                    <div id="spcPlot" class="plot-container"></div>
+                </div>
+            </div>
+
+            <!-- AI Settings Tab -->
+            <div id="settings" class="tab-content">
+                <div class="section">
+                    <h2 class="section-title">AI Assistant Settings</h2>
+                    
+                    <div class="api-setup">
+                        <strong>Google Gemini API Configuration</strong>
+                        <p style="margin-top: 10px; font-size: 13px;">
+                            To use the AI interpretation feature, you need a Google Gemini API key.
+                            Get one free at: <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>
+                        </p>
+                        <input type="password" id="geminiApiKey" placeholder="Enter your Gemini API key">
+                        <button onclick="saveApiKey()" style="margin-top: 10px;">Save API Key</button>
+                    </div>
+
+                    <div class="info-box">
+                        <strong>How to use AI Assistant:</strong><br>
+                        1. Enter your Google Gemini API key above<br>
+                        2. Run any analysis (TOST, ANOVA, SPC, etc.)<br>
+                        3. Click "Ask AI to Interpret" button<br>
+                        4. Or use the chat sidebar to ask custom questions<br>
+                        5. AI will provide statistical interpretation and recommendations
+                    </div>
+
+                    <div class="info-box" style="background: #d4edda; border-color: #28a745;">
+                        <strong>Privacy Note:</strong><br>
+                        Your API key is stored locally in your browser only. 
+                        It is never sent to any server except Google's Gemini API for analysis.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Chat Sidebar -->
+        <div class="ai-sidebar">
+            <div class="ai-header">
+                <h3>AI Assistant</h3>
+                <p>Powered by Google Gemini</p>
+            </div>
+            <div class="ai-messages" id="aiMessages">
+                <div class="ai-message ai">
+                    Hello! I'm your AI assistant for statistical analysis. 
+                    I can help interpret your results, explain statistical concepts, 
+                    and provide recommendations. Try running an analysis and click 
+                    "Ask AI to Interpret" or type your question below.
+                </div>
+            </div>
+            <div class="ai-input-area">
+                <div class="ai-input-group">
+                    <input type="text" id="aiInput" placeholder="Ask me anything about your analysis..." 
+                           onkeypress="if(event.key==='Enter') sendMessage()">
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentVizType = 'histogram';
+        let variableCount = 0;
+        let lastAnalysisContext = '';
+
+        // Utility Functions
+        function parseData(str) {
+            return str.split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
+        }
+
+        function mean(arr) {
+            return arr.reduce((a, b) => a + b, 0) / arr.length;
+        }
+
+        function std(arr) {
+            const m = mean(arr);
+            const variance = arr.reduce((sum, x) => sum + Math.pow(x - m, 2), 0) / (arr.length - 1);
+            return Math.sqrt(variance);
+        }
+
+        function openTab(tabName) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const buttons = document.querySelectorAll('.nav-tab');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Visualization Selection
+        function selectViz(type) {
+            currentVizType = type;
+            document.querySelectorAll('.viz-option').forEach(opt => opt.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // Data Explorer
+        function visualizeData() {
+            const name = document.getElementById('explorerName').value;
+            const data = parseData(document.getElementById('explorerData').value);
+
+            if (data.length < 2) {
+                alert('At least 2 data points required.');
+                return;
+            }
+
+            const avg = mean(data);
+            const stdDev = std(data);
+            const minVal = Math.min(...data);
+            const maxVal = Math.max(...data);
+
+            let html = `
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 20px;">
+                    <div class="stat-card">
+                        <div class="label">Mean</div>
+                        <div class="value">${avg.toFixed(3)}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Std Dev</div>
+                        <div class="value">${stdDev.toFixed(3)}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Min</div>
+                        <div class="value">${minVal.toFixed(3)}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Max</div>
+                        <div class="value">${maxVal.toFixed(3)}</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('explorerResults').innerHTML = html;
+
+            // Store context for AI
+            lastAnalysisContext = `Data Explorer Results for "${name}":
+Data points: ${data.length}
+Mean: ${avg.toFixed(3)}
+Standard Deviation: ${stdDev.toFixed(3)}
+Range: ${minVal.toFixed(3)} - ${maxVal.toFixed(3)}
+Visualization: ${currentVizType}`;
+
+            // Create visualization based on type
+            let trace, layout;
+
+            switch(currentVizType) {
+                case 'histogram':
+                    trace = {
+                        x: data,
+                        type: 'histogram',
+                        marker: { color: '#3498db' }
+                    };
+                    layout = {
+                        title: `${name} - Histogram`,
+                        xaxis: { title: 'Value' },
+                        yaxis: { title: 'Frequency' }
+                    };
+                    break;
+
+                case 'box':
+                    trace = {
+                        y: data,
+                        type: 'box',
+                        name: name,
+                        boxmean: 'sd',
+                        marker: { color: '#3498db' }
+                    };
+                    layout = {
+                        title: `${name} - Box Plot`,
+                        yaxis: { title: 'Value' }
+                    };
+                    break;
+
+                case 'scatter':
+                    trace = {
+                        x: data.map((_, i) => i + 1),
+                        y: data,
+                        mode: 'markers',
+                        marker: { size: 10, color: '#3498db' }
+                    };
+                    layout = {
+                        title: `${name} - Scatter Plot`,
+                        xaxis: { title: 'Index' },
+                        yaxis: { title: 'Value' }
+                    };
+                    break;
+
+                case 'bar':
+                    trace = {
+                        x: data.map((_, i) => `Point ${i + 1}`),
+                        y: data,
+                        type: 'bar',
+                        marker: { color: '#3498db' }
+                    };
+                    layout = {
+                        title: `${name} - Bar Chart`,
+                        yaxis: { title: 'Value' }
+                    };
+                    break;
+
+                case 'line':
+                    trace = {
+                        x: data.map((_, i) => i + 1),
+                        y: data,
+                        mode: 'lines+markers',
+                        line: { color: '#3498db', width: 2 },
+                        marker: { size: 8 }
+                    };
+                    layout = {
+                        title: `${name} - Line Chart`,
+                        xaxis: { title: 'Index' },
+                        yaxis: { title: 'Value' }
+                    };
+                    break;
+
+                case 'violin':
+                    trace = {
+                        y: data,
+                        type: 'violin',
+                        name: name,
+                        box: { visible: true },
+                        meanline: { visible: true },
+                        marker: { color: '#3498db' }
+                    };
+                    layout = {
+                        title: `${name} - Violin Plot`,
+                        yaxis: { title: 'Value' }
+                    };
+                    break;
+            }
+
+            layout.height = 500;
+            Plotly.newPlot('explorerPlot', [trace], layout);
+        }
+
+        // Multi-Variable Analysis
+        function addVariable() {
+            variableCount++;
+            const varDiv = document.createElement('div');
+            varDiv.className = 'variable-item';
+            varDiv.id = `var${variableCount}`;
+            varDiv.innerHTML = `
+                <div class="variable-header">
+                    <h4>Variable ${variableCount}</h4>
+                    <button class="danger" onclick="removeVariable(${variableCount})">Remove</button>
+                </div>
+                <label>Variable Name</label>
+                <input type="text" id="varName${variableCount}" placeholder="e.g., Batch A" value="Variable ${variableCount}">
+                <label style="margin-top: 10px;">Data Values</label>
+                <textarea id="varData${variableCount}" placeholder="Enter comma-separated values"></textarea>
+            `;
+            document.getElementById('variablesList').appendChild(varDiv);
+        }
+
+        function removeVariable(id) {
+            const elem = document.getElementById(`var${id}`);
+            if (elem) elem.remove();
+        }
+
+        function removeLastVariable() {
+            if (variableCount > 0) {
+                const elem = document.getElementById(`var${variableCount}`);
+                if (elem) {
+                    elem.remove();
+                    variableCount--;
+                }
+            }
+        }
+
+        function analyzeMultivar() {
+            const analysisType = document.getElementById('multivarAnalysis').value;
+            const variables = [];
+
+            // Collect all variables
+            for (let i = 1; i <= variableCount; i++) {
+                const elem = document.getElementById(`var${i}`);
+                if (elem) {
+                    const name = document.getElementById(`varName${i}`).value;
+                    const data = parseData(document.getElementById(`varData${i}`).value);
+                    if (data.length >= 2) {
+                        variables.push({ name, data });
+                    }
+                }
+            }
+
+            if (variables.length < 2) {
+                alert('At least 2 variables with data required.');
+                return;
+            }
+
+            // Store context for AI
+            lastAnalysisContext = `Multi-Variable Analysis (${analysisType}):\n`;
+            variables.forEach(v => {
+                lastAnalysisContext += `${v.name}: Mean=${mean(v.data).toFixed(3)}, SD=${std(v.data).toFixed(3)}, N=${v.data.length}\n`;
+            });
+
+            // Perform analysis based on type
+            if (analysisType === 'compare') {
+                compareDistributions(variables);
+            } else if (analysisType === 'correlation') {
+                correlationAnalysis(variables);
+            } else if (analysisType === 'trend') {
+                trendAnalysis(variables);
+            }
+        }
+
+        function compareDistributions(variables) {
+            const traces = variables.map(v => ({
+                y: v.data,
+                type: 'box',
+                name: v.name,
+                boxmean: 'sd'
+            }));
+
+            const layout = {
+                title: 'Multi-Variable Distribution Comparison',
+                yaxis: { title: 'Value' },
+                height: 500
+            };
+
+            Plotly.newPlot('multivarPlot', traces, layout);
+
+            let html = '<table style="width: 100%; margin-top: 20px; border-collapse: collapse;"><thead><tr><th style="border: 1px solid #ddd; padding: 10px;">Variable</th><th style="border: 1px solid #ddd; padding: 10px;">Mean</th><th style="border: 1px solid #ddd; padding: 10px;">Std Dev</th><th style="border: 1px solid #ddd; padding: 10px;">N</th></tr></thead><tbody>';
+            
+            variables.forEach(v => {
+                html += `<tr>
+                    <td style="border: 1px solid #ddd; padding: 10px;">${v.name}</td>
+                    <td style="border: 1px solid #ddd; padding: 10px;">${mean(v.data).toFixed(3)}</td>
+                    <td style="border: 1px solid #ddd; padding: 10px;">${std(v.data).toFixed(3)}</td>
+                    <td style="border: 1px solid #ddd; padding: 10px;">${v.data.length}</td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table>';
+            document.getElementById('multivarResults').innerHTML = html;
+        }
+
+        function correlationAnalysis(variables) {
+            if (variables.length !== 2) {
+                alert('Correlation analysis requires exactly 2 variables.');
+                return;
+            }
+
+            const [var1, var2] = variables;
+            const minLen = Math.min(var1.data.length, var2.data.length);
+            const x = var1.data.slice(0, minLen);
+            const y = var2.data.slice(0, minLen);
+
+            // Calculate correlation
+            const meanX = mean(x);
+            const meanY = mean(y);
+            const numerator = x.reduce((sum, xi, i) => sum + (xi - meanX) * (y[i] - meanY), 0);
+            const denomX = Math.sqrt(x.reduce((sum, xi) => sum + Math.pow(xi - meanX, 2), 0));
+            const denomY = Math.sqrt(y.reduce((sum, yi) => sum + Math.pow(yi - meanY, 2), 0));
+            const correlation = numerator / (denomX * denomY);
+
+            const trace = {
+                x: x,
+                y: y,
+                mode: 'markers',
+                marker: { size: 10, color: '#3498db' },
+                name: 'Data Points'
+            };
+
+            const layout = {
+                title: `Correlation: ${var1.name} vs ${var2.name}`,
+                xaxis: { title: var1.name },
+                yaxis: { title: var2.name },
+                height: 500
+            };
+
+            Plotly.newPlot('multivarPlot', [trace], layout);
+
+            lastAnalysisContext += `Correlation coefficient: ${correlation.toFixed(3)}`;
+
+            let html = `
+                <div class="result-box">
+                    <strong>Correlation Analysis</strong><br>
+                    Correlation Coefficient (r): ${correlation.toFixed(3)}<br>
+                    Interpretation: ${Math.abs(correlation) > 0.7 ? 'Strong' : Math.abs(correlation) > 0.4 ? 'Moderate' : 'Weak'} ${correlation > 0 ? 'positive' : 'negative'} correlation
+                </div>
+            `;
+            document.getElementById('multivarResults').innerHTML = html;
+        }
+
+        function trendAnalysis(variables) {
+            const traces = variables.map(v => ({
+                x: v.data.map((_, i) => i + 1),
+                y: v.data,
+                mode: 'lines+markers',
+                name: v.name,
+                line: { width: 2 },
+                marker: { size: 6 }
+            }));
+
+            const layout = {
+                title: 'Multi-Variable Trend Analysis',
+                xaxis: { title: 'Time Point' },
+                yaxis: { title: 'Value' },
+                height: 500
+            };
+
+            Plotly.newPlot('multivarPlot', traces, layout);
+
+            let html = '<div class="result-box"><strong>Trend Analysis</strong><br>Visual comparison of trends over time.</div>';
+            document.getElementById('multivarResults').innerHTML = html;
+        }
+
+        // TOST Analysis
+        function runTOST() {
+            const group1 = parseData(document.getElementById('tostGroup1').value);
+            const group2 = parseData(document.getElementById('tostGroup2').value);
+            const margin = parseFloat(document.getElementById('tostMargin').value);
+
+            if (group1.length < 2 || group2.length < 2) {
+                alert('Each group requires at least 2 data points.');
+                return;
+            }
+
+            const mean1 = mean(group1);
+            const mean2 = mean(group2);
+            const meanDiff = mean1 - mean2;
+            const std1 = std(group1);
+            const std2 = std(group2);
+            const pooledStd = Math.sqrt(((group1.length - 1) * std1 * std1 + (group2.length - 1) * std2 * std2) / (group1.length + group2.length - 2));
+            const se = pooledStd * Math.sqrt(1/group1.length + 1/group2.length);
+            
+            const ci_lower = meanDiff - 2.0 * se;
+            const ci_upper = meanDiff + 2.0 * se;
+            const eqMargin = mean1 * (margin / 100);
+            const isEquivalent = (ci_lower > -eqMargin) && (ci_upper < eqMargin);
+
+            lastAnalysisContext = `TOST Equivalence Testing Results:
+Reference Mean: ${mean1.toFixed(3)}
+Test Mean: ${mean2.toFixed(3)}
+Mean Difference: ${meanDiff.toFixed(3)}
+95% CI: [${ci_lower.toFixed(3)}, ${ci_upper.toFixed(3)}]
+Equivalence Margin: ±${eqMargin.toFixed(3)}
+Conclusion: ${isEquivalent ? 'EQUIVALENT' : 'NOT EQUIVALENT'}`;
+
+            let html = `
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px;">
+                    <div class="stat-card">
+                        <div class="label">Reference Mean</div>
+                        <div class="value">${mean1.toFixed(3)}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Test Mean</div>
+                        <div class="value">${mean2.toFixed(3)}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Difference</div>
+                        <div class="value">${meanDiff.toFixed(3)}</div>
+                    </div>
+                </div>
+                <div class="result-box ${isEquivalent ? '' : 'warning'}">
+                    <strong>CONCLUSION: ${isEquivalent ? 'EQUIVALENT' : 'NOT EQUIVALENT'}</strong><br>
+                    95% CI: [${ci_lower.toFixed(3)}, ${ci_upper.toFixed(3)}]<br>
+                    Equivalence Margin: ±${eqMargin.toFixed(3)}
+                </div>
+            `;
+
+            document.getElementById('tostResults').innerHTML = html;
+
+            const trace1 = { y: group1, type: 'box', name: 'Reference', boxmean: 'sd' };
+            const trace2 = { y: group2, type: 'box', name: 'Test', boxmean: 'sd' };
+            Plotly.newPlot('tostPlot', [trace1, trace2], { title: 'TOST Equivalence Testing', height: 500 });
+        }
+
+        // ANOVA Analysis
+        function runANOVA() {
+            const groupNameA = document.getElementById('anovaNameA').value || 'Group A';
+            const groupNameB = document.getElementById('anovaNameB').value || 'Group B';
+            const groupNameC = document.getElementById('anovaNameC').value || 'Group C';
+            
+            const groupA = parseData(document.getElementById('anovaA').value);
+            const groupB = parseData(document.getElementById('anovaB').value);
+            const groupC = parseData(document.getElementById('anovaC').value);
+            
+            const groupsData = [
+                { name: groupNameA, data: groupA },
+                { name: groupNameB, data: groupB },
+                { name: groupNameC, data: groupC }
+            ].filter(g => g.data.length >= 2);
+
+            if (groupsData.length < 2) {
+                alert('At least 2 groups with data required.');
+                return;
+            }
+
+            const groups = groupsData.map(g => g.data);
+            const allData = groups.flat();
+            const grandMean = mean(allData);
+            const ssBetween = groups.reduce((sum, g) => sum + g.length * Math.pow(mean(g) - grandMean, 2), 0);
+            const ssWithin = groups.reduce((sum, g) => sum + g.reduce((s, x) => s + Math.pow(x - mean(g), 2), 0), 0);
+            const dfBetween = groups.length - 1;
+            const dfWithin = allData.length - groups.length;
+            const fStat = (ssBetween / dfBetween) / (ssWithin / dfWithin);
+
+            lastAnalysisContext = `ANOVA Results (Process Comparison):
+Groups: ${groupsData.map(g => `${g.name} (n=${g.data.length}, mean=${mean(g.data).toFixed(3)}, SD=${std(g.data).toFixed(3)})`).join('; ')}
+F-statistic: ${fStat.toFixed(3)}
+DF Between: ${dfBetween}, DF Within: ${dfWithin}
+SS Between: ${ssBetween.toFixed(3)}, SS Within: ${ssWithin.toFixed(3)}
+Conclusion: ${fStat > 3 ? 'Significant difference detected (p < 0.05 estimated)' : 'No significant difference'}`;
+
+            let html = `
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px;">
+                    <div class="stat-card">
+                        <div class="label">F-Statistic</div>
+                        <div class="value">${fStat.toFixed(3)}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">DF Between</div>
+                        <div class="value">${dfBetween}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">DF Within</div>
+                        <div class="value">${dfWithin}</div>
+                    </div>
+                </div>
+                <div class="result-box ${fStat > 3 ? 'warning' : ''}">
+                    <strong>${fStat > 3 ? 'SIGNIFICANT DIFFERENCE DETECTED' : 'NO SIGNIFICANT DIFFERENCE'}</strong><br>
+                    ${fStat > 3 ? 'At least one group differs significantly (p < 0.05 estimated)' : 'All groups are statistically similar'}
+                </div>
+            `;
+
+            document.getElementById('anovaResults').innerHTML = html;
+
+            const traces = groupsData.map(g => ({ 
+                y: g.data, 
+                type: 'box', 
+                name: g.name, 
+                boxmean: 'sd' 
+            }));
+            Plotly.newPlot('anovaPlot', traces, { title: 'ANOVA - Process Comparison', height: 500 });
+        }
+
+        // SPC Control Chart
+        function runSPC() {
+            const data = parseData(document.getElementById('spcData').value);
+            const target = parseFloat(document.getElementById('spcTarget').value);
+            const sigma = parseFloat(document.getElementById('spcSigma').value);
+
+            if (data.length < 2) {
+                alert('At least 2 data points required.');
+                return;
+            }
+
+            const avg = mean(data);
+            const stdDev = std(data);
+            const ucl = avg + sigma * stdDev;
+            const lcl = avg - sigma * stdDev;
+            const oos = data.filter(x => x > ucl || x < lcl);
+
+            lastAnalysisContext = `SPC Control Chart Results:
+Center Line: ${avg.toFixed(3)}
+UCL: ${ucl.toFixed(3)}
+LCL: ${lcl.toFixed(3)}
+OOS Points: ${oos.length}
+Status: ${oos.length === 0 ? 'Process in control' : `${oos.length} out-of-control points detected`}`;
+
+            let html = `
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px;">
+                    <div class="stat-card">
+                        <div class="label">Center Line</div>
+                        <div class="value">${avg.toFixed(3)}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">UCL</div>
+                        <div class="value">${ucl.toFixed(3)}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">LCL</div>
+                        <div class="value">${lcl.toFixed(3)}</div>
+                    </div>
+                </div>
+                <div class="result-box ${oos.length > 0 ? 'warning' : ''}">
+                    <strong>${oos.length === 0 ? 'PROCESS IN CONTROL' : 'OOS DETECTED'}</strong><br>
+                    ${oos.length === 0 ? 'All points within control limits' : `${oos.length} point(s) exceed control limits`}
+                </div>
+            `;
+
+            document.getElementById('spcResults').innerHTML = html;
+
+            const xValues = data.map((_, i) => i + 1);
+            const trace1 = { x: xValues, y: data, mode: 'lines+markers', name: 'Data', line: { width: 2 } };
+            const trace2 = { x: xValues, y: Array(data.length).fill(avg), mode: 'lines', name: 'CL', line: { dash: 'dash' } };
+            const trace3 = { x: xValues, y: Array(data.length).fill(ucl), mode: 'lines', name: 'UCL', line: { dash: 'dot', color: 'red' } };
+            const trace4 = { x: xValues, y: Array(data.length).fill(lcl), mode: 'lines', name: 'LCL', line: { dash: 'dot', color: 'red' } };
+            Plotly.newPlot('spcPlot', [trace1, trace2, trace3, trace4], { title: 'SPC Control Chart', height: 500 });
+        }
+
+        // AI Functions
+        function saveApiKey() {
+            const key = document.getElementById('geminiApiKey').value;
+            if (key) {
+                localStorage.setItem('geminiApiKey', key);
+                alert('API key saved successfully!');
+            }
+        }
+
+        async function callGeminiAPI(prompt) {
+            const apiKey = localStorage.getItem('geminiApiKey');
+            if (!apiKey) {
+                addAIMessage('Please configure your Gemini API key in the AI Settings tab first.', 'ai');
+                return;
+            }
+
+            // Process Management & QC System Prompt
+            const systemPrompt = `You are an AI statistical analyst specialized in pharmaceutical PROCESS MANAGEMENT, quality control, process validation, and CMC decision-making under GMP and ICH guidelines.
+
+Your PRIMARY FOCUS is on process optimization, troubleshooting, and continuous improvement (CPV).
+
+Your task is to:
+1) Interpret statistical analysis results from a PROCESS PERSPECTIVE
+2) Identify process capability issues (Cpk, process variability)
+3) Explain conclusions in Process/Manufacturing/QMS terms
+4) Provide actionable recommendations for process optimization
+5) Assess regulatory implications (ICH Q8/Q9/Q10, GMP, Process Validation)
+
+Follow this strict reasoning order:
+Data context → Statistical meaning → Process interpretation → Risk & root cause → Improvement action
+
+REQUIRED OUTPUT FORMAT:
+
+1. Statistical Conclusion
+   - Test used:
+   - Key statistics (mean, SD, CV%, range, Cpk if applicable):
+   - Statistical interpretation:
+
+2. Process Management Interpretation
+   - Process capability assessment (Is the process capable? Within spec?)
+   - Root cause analysis hints (Which factor varies most? Batch-to-batch? Within-batch?)
+   - Practical significance for manufacturing:
+   - Risk of OOS / OOT / process drift:
+
+3. Actionable Recommendations
+   - Process optimization opportunities:
+   - Which process parameter to investigate first:
+   - Suggested corrective/preventive actions (CAPA):
+   - Impact on validation status / CPV / change control:
+
+4. Regulatory & Documentation
+   - Required documentation (deviation report, validation protocol amendment):
+   - Impact on regulatory submissions (variation, annual report):
+   - Next steps for QA/QC:
+
+Use clear, PRACTICAL language suitable for:
+- Manufacturing troubleshooting discussions
+- Process optimization meetings
+- Technical transfer reports
+- QC trend analysis reports
+
+Do NOT give generic textbook explanations.
+Focus on WHAT TO DO NEXT from a process improvement perspective.`;
+
+            const fullPrompt = systemPrompt + "\n\n====================\nANALYSIS CONTEXT\n====================\n" + prompt;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: fullPrompt }]
+                        }],
+                        generationConfig: {
+                            temperature: 0.3,
+                            topK: 32,
+                            topP: 0.95,
+                            maxOutputTokens: 2048,
+                        },
+                        safetySettings: [
+                            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('API Error Response:', errorData);
+                    throw new Error(`API Error (${response.status}): ${errorData.error?.message || response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                    return data.candidates[0].content.parts[0].text;
+                } else if (data.promptFeedback?.blockReason) {
+                    throw new Error(`Content blocked: ${data.promptFeedback.blockReason}`);
+                } else if (data.error) {
+                    throw new Error(data.error.message);
+                } else {
+                    console.error('Unexpected API response:', data);
+                    throw new Error('Invalid response structure from Gemini API');
+                }
+            } catch (error) {
+                console.error('Gemini API Error:', error);
+                let errorMsg = `Error: ${error.message}\n\n`;
+                
+                if (error.message.includes('API_KEY_INVALID')) {
+                    errorMsg += '❌ Your API key is invalid. Please check it in AI Settings.';
+                } else if (error.message.includes('404')) {
+                    errorMsg += '❌ Model not found. Trying to use gemini-1.5-pro. Make sure your API key has access.';
+                } else if (error.message.includes('429')) {
+                    errorMsg += '❌ Rate limit exceeded. Please wait a moment and try again.';
+                } else {
+                    errorMsg += 'Please check:\n1. Your API key is valid and has Gemini API access\n2. You have internet connection\n3. Try refreshing the page';
+                }
+                
+                return errorMsg;
+            }
+        }
+
+        function addAIMessage(text, sender) {
+            const messagesDiv = document.getElementById('aiMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-message ${sender}`;
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('aiInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            addAIMessage(message, 'user');
+            input.value = '';
+
+            const prompt = `You are a pharmaceutical statistics expert. Answer this question concisely and professionally:\n\n${message}\n\nContext from last analysis:\n${lastAnalysisContext || 'No recent analysis'}`;
+            
+            addAIMessage('Thinking...', 'ai');
+            const response = await callGeminiAPI(prompt);
+            
+            // Remove "Thinking..." message
+            const messages = document.getElementById('aiMessages');
+            messages.removeChild(messages.lastChild);
+            
+            addAIMessage(response, 'ai');
+        }
+
+        async function askAIAboutExplorer() {
+            if (!lastAnalysisContext) {
+                alert('Please run an analysis first.');
+                return;
+            }
+            addAIMessage('Interpret the Data Explorer results', 'user');
+            const prompt = `You are a pharmaceutical statistics expert. Provide a concise interpretation of this data analysis:\n\n${lastAnalysisContext}\n\nProvide: 1) Summary, 2) Key insights, 3) Recommendations`;
+            addAIMessage('Analyzing...', 'ai');
+            const response = await callGeminiAPI(prompt);
+            const messages = document.getElementById('aiMessages');
+            messages.removeChild(messages.lastChild);
+            addAIMessage(response, 'ai');
+        }
+
+        async function askAIAboutMultivar() {
+            if (!lastAnalysisContext) {
+                alert('Please run an analysis first.');
+                return;
+            }
+            addAIMessage('Interpret the Multi-Variable analysis', 'user');
+            const prompt = `You are a pharmaceutical statistics expert. Interpret this multi-variable analysis:\n\n${lastAnalysisContext}\n\nProvide insights and recommendations.`;
+            addAIMessage('Analyzing...', 'ai');
+            const response = await callGeminiAPI(prompt);
+            const messages = document.getElementById('aiMessages');
+            messages.removeChild(messages.lastChild);
+            addAIMessage(response, 'ai');
+        }
+
+        async function askAIAboutTOST() {
+            if (!lastAnalysisContext) {
+                alert('Please run TOST analysis first.');
+                return;
+            }
+            addAIMessage('Interpret the TOST equivalence testing results', 'user');
+            const prompt = `You are a pharmaceutical statistics expert. Interpret this TOST analysis:\n\n${lastAnalysisContext}\n\nExplain if equivalence is demonstrated and regulatory implications.`;
+            addAIMessage('Analyzing...', 'ai');
+            const response = await callGeminiAPI(prompt);
+            const messages = document.getElementById('aiMessages');
+            messages.removeChild(messages.lastChild);
+            addAIMessage(response, 'ai');
+        }
+
+        async function askAIAboutANOVA() {
+            if (!lastAnalysisContext) {
+                alert('Please run ANOVA first.');
+                return;
+            }
+            addAIMessage('Interpret the ANOVA results', 'user');
+            const prompt = `You are a pharmaceutical statistics expert. Interpret this ANOVA:\n\n${lastAnalysisContext}\n\nExplain statistical significance and next steps.`;
+            addAIMessage('Analyzing...', 'ai');
+            const response = await callGeminiAPI(prompt);
+            const messages = document.getElementById('aiMessages');
+            messages.removeChild(messages.lastChild);
+            addAIMessage(response, 'ai');
+        }
+
+        async function askAIAboutSPC() {
+            if (!lastAnalysisContext) {
+                alert('Please run SPC analysis first.');
+                return;
+            }
+            addAIMessage('Interpret the SPC control chart', 'user');
+            const prompt = `You are a pharmaceutical statistics expert. Interpret this SPC chart:\n\n${lastAnalysisContext}\n\nAssess process stability and recommend actions.`;
+            addAIMessage('Analyzing...', 'ai');
+            const response = await callGeminiAPI(prompt);
+            const messages = document.getElementById('aiMessages');
+            messages.removeChild(messages.lastChild);
+            addAIMessage(response, 'ai');
+        }
+
+        // Initialize with one variable
+        window.onload = function() {
+            addVariable();
+        };
+    </script>
+</body>
+</html>
