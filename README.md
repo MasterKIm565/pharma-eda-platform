@@ -65,9 +65,54 @@ cd pharma-eda-platform
 open index.html
 ```
 
----
+---How to open the program
+Copilot said: # How to Run This Program This is
+How to Run This Program
+This is a standalone HTML file that runs entirely in your web browser. Here are the ways to use it:
 
-## 📖 How to Use
+Option 1: Direct Browser Access (Easiest)
+Go to GitHub: https://github.com/MasterKIm565/pharma-eda-platform
+Click on pharma_eda_platform_v2.html
+Click the "Raw" button
+The file will display in your browser
+Alternatively, right-click → "Save as" to download it locally
+Option 2: Download and Open Locally
+Download the file from the repository
+Double-click pharma_eda_platform_v2.html to open it in your default browser
+Or drag it into any modern web browser (Chrome, Firefox, Safari, Edge)
+Option 3: Run via Local Server (Recommended for File Uploads)
+If you want to upload Excel/CSV files:
+
+Using Python:
+
+bash
+# Python 3
+python -m http.server 8000
+
+# Python 2
+python -m SimpleHTTPServer 8000
+Then open: http://localhost:8000/pharma_eda_platform_v2.html
+
+System Requirements
+✅ Modern web browser (Chrome, Firefox, Safari, Edge)
+✅ Internet connection (to load external libraries: Plotly, PapaParse, XLSX)
+✅ Claude API Key (for AI interpretation features)
+Initial Setup
+Save Claude API Key (optional, for AI features):
+
+Paste your Claude API key in the top-right input field
+Click "Save"
+Select Sample Type: Choose from API, Finished Product, In-Process, Stability, Validation, Cleaning, or Method
+
+Enter Data:
+
+Upload Excel/CSV file, OR
+Paste comma-separated values manually
+Run Analysis: Click "Run Analysis" or "AI Interpretation"
+
+
+
+## 📖 How to Use program
 
 1. **Select Analysis Type** - Choose from navigation tabs
 2. **Input Data** - Enter comma-separated values
