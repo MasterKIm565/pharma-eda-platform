@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PharmQC Analytics - GMP Validation Statistics Platform</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#f0f2f5;--surface:#fff;--surface2:#f7f8fa;
+--border:#d4d8dd;--border-light:#e8eaed;
+--text:#1a1d21;--text2:#44494f;--text3:#6b7280;
+--primary:#0f52ba;--primary-light:#e8f0fe;--primary-dark:#0a3d8f;
+--success:#0d7a3f;--success-bg:#e6f4ec;
+--warning:#b45309;--warning-bg:#fef3c7;
+--danger:#c41e3a;--danger-bg:#fde8ec;--danger-light:#fff0f3;
+--accent:#5b21b6;--accent-bg:#f3e8ff;
+--sidebar-bg:#111827;--sidebar-text:#e5e7eb;
+--tag-blue:#dbeafe;--tag-blue-text:#1e40af;
+}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+.app{display:grid;grid-template-columns:1fr 420px;height:100vh;overflow:hidden}
+.main{overflow-y:auto;display:flex;flex-direction:column}
+
+/* Header */
+.header{background:var(--sidebar-bg);color:#fff;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-shrink:0}
+.header-left h1{font-size:20px;font-weight:700;letter-spacing:-0.3px}
+.header-left p{font-size:12px;color:#9ca3af;margin-top:2px;font-weight:400}
+.header-right{display:flex;align-items:center;gap:12px}
+.api-input{background:#1f2937;border:1px solid #374151;color:#fff;padding:8px 12px;border-radius:6px;font-size:12px;width:260px;font-family:'IBM Plex Mono',monospace}
+.api-input::placeholder{color:#6b7280}
+.api-input:focus{outline:none;border-color:var(--primary)}
+.btn-save-key{background:var(--primary);color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-save-key:hover{background:var(--primary-dark)}
+
+/* Tabs */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto}
+.tab{padding:12px 20px;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;transition:all .2s}
+.tab:hover{color:var(--text);background:var(--surface2)}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+
+/* Content */
+.content{flex:1;padding:24px 32px}
+.panel{display:none}
+.panel.active{display:block}
+
+/* Section */
+.sec{background:var(--surface);border:1px solid var(--border-light);border-radius:8px;padding:24px;margin-bottom:20px}
+.sec-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:8px}
+.sec-title .badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px}
+.badge-blue{background:var(--tag-blue);color:var(--tag-blue-text)}
+.badge-green{background:var(--success-bg);color:var(--success)}
+.badge-red{background:var(--danger-bg);color:var(--danger)}
+.badge-purple{background:var(--accent-bg);color:var(--accent)}
+
+/* Form */
+.form-row{display:grid;gap:16px;margin-bottom:16px}
+.form-row.c2{grid-template-columns:1fr 1fr}
+.form-row.c3{grid-template-columns:1fr 1fr 1fr}
+.form-row.c4{grid-template-columns:1fr 1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px}
+.form-input,.form-select,.form-textarea{border:1px solid var(--border);border-radius:6px;padding:9px 12px;font-size:13px;font-family:'IBM Plex Sans',sans-serif;color:var(--text);background:var(--surface);transition:border-color .2s}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(15,82,186,0.08)}
+.form-textarea{min-height:80px;resize:vertical;font-family:'IBM Plex Mono',monospace;font-size:12px}
+
+/* Sample Type */
+.sample-types{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-bottom:16px}
+.sample-type{padding:10px 12px;border:2px solid var(--border-light);border-radius:8px;cursor:pointer;transition:all .2s;text-align:center;font-size:12px;font-weight:500;background:var(--surface)}
+.sample-type:hover{border-color:var(--primary);background:var(--primary-light)}
+.sample-type.active{border-color:var(--primary);background:var(--primary);color:#fff}
+.sample-type small{display:block;font-size:10px;opacity:.7;margin-top:2px}
+
+/* Chart Selection */
+.chart-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:16px}
+.chart-check{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border-light);border-radius:6px;cursor:pointer;transition:all .2s;font-size:12px;font-weight:500}
+.chart-check:hover{border-color:var(--primary);background:var(--primary-light)}
+.chart-check.checked{border-color:var(--primary);background:var(--primary-light)}
+.chart-check input[type="checkbox"]{accent-color:var(--primary);width:14px;height:14px}
+
+/* Buttons */
+.btn{border:none;padding:10px 20px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'IBM Plex Sans',sans-serif}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{background:var(--border-light)}
+.btn-success{background:var(--success);color:#fff}.btn-success:hover{opacity:.9}
+.btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{opacity:.9}
+.btn-sm{padding:6px 12px;font-size:11px}
+.btn-group{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+
+/* Stats Grid */
+.stats-grid{display:grid;gap:12px;margin:16px 0}
+.stats-grid.c3{grid-template-columns:repeat(3,1fr)}
+.stats-grid.c4{grid-template-columns:repeat(4,1fr)}
+.stats-grid.c5{grid-template-columns:repeat(5,1fr)}
+.stats-grid.c6{grid-template-columns:repeat(6,1fr)}
+.stat-card{background:var(--surface2);border:1px solid var(--border-light);border-radius:8px;padding:14px;text-align:center}
+.stat-card .label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+.stat-card .value{font-size:20px;font-weight:700;color:var(--text);font-family:'IBM Plex Mono',monospace}
+.stat-card.primary{background:var(--primary-light);border-color:var(--primary)}
+.stat-card.primary .value{color:var(--primary)}
+.stat-card.success{background:var(--success-bg);border-color:var(--success)}
+.stat-card.success .value{color:var(--success)}
+.stat-card.danger{background:var(--danger-bg);border-color:var(--danger)}
+.stat-card.danger .value{color:var(--danger)}
+.stat-card.warning{background:var(--warning-bg);border-color:var(--warning)}
+.stat-card.warning .value{color:var(--warning)}
+
+/* Result Box */
+.result-box{border-radius:8px;padding:16px;margin:16px 0;font-size:13px;border-left:4px solid}
+.result-pass{background:var(--success-bg);border-color:var(--success);color:#065f46}
+.result-fail{background:var(--danger-bg);border-color:var(--danger);color:#991b1b}
+.result-warn{background:var(--warning-bg);border-color:var(--warning);color:#92400e}
+.result-info{background:var(--primary-light);border-color:var(--primary);color:#1e3a5f}
+.result-box strong{display:block;margin-bottom:4px;font-size:13px}
+
+/* Charts Grid */
+.charts-grid{display:grid;gap:16px;margin-top:16px}
+.charts-grid.g2{grid-template-columns:1fr 1fr}
+.charts-grid.g1{grid-template-columns:1fr}
+.chart-wrap{background:var(--surface);border:1px solid var(--border-light);border-radius:8px;overflow:hidden}
+.chart-wrap .chart-header{padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border-light);font-size:12px;font-weight:600;color:var(--text2)}
+
+/* Table */
+.data-table{width:100%;border-collapse:collapse;font-size:12px;margin:12px 0}
+.data-table th{background:var(--surface2);padding:10px 12px;text-align:left;font-weight:600;color:var(--text2);border:1px solid var(--border-light);font-size:11px;text-transform:uppercase;letter-spacing:0.3px}
+.data-table td{padding:9px 12px;border:1px solid var(--border-light);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:12px}
+.data-table tr:hover{background:var(--surface2)}
+
+/* GMP Box */
+.gmp-box{background:#f8f9fa;border:1px solid var(--border-light);border-radius:8px;padding:16px;margin:12px 0}
+.gmp-box .gmp-title{font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text)}
+.gmp-box .gmp-row{display:grid;grid-template-columns:100px 1fr;gap:4px;margin-bottom:4px;font-size:12px}
+.gmp-box .gmp-label{font-weight:600;color:var(--text3)}
+.gmp-box .gmp-value{color:var(--text)}
+.gmp-fail{border-color:var(--danger);background:var(--danger-light)}
+.gmp-fail .gmp-title{color:var(--danger)}
+
+/* File Upload */
+.upload-zone{border:2px dashed var(--border);border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2)}
+.upload-zone:hover{border-color:var(--primary);background:var(--primary-light)}
+.upload-zone.dragover{border-color:var(--primary);background:var(--primary-light)}
+.upload-zone p{font-size:13px;color:var(--text3);margin-top:4px}
+.upload-zone .upload-title{font-size:14px;font-weight:600;color:var(--text)}
+
+/* AI Sidebar */
+.sidebar{background:var(--sidebar-bg);display:flex;flex-direction:column;border-left:1px solid #1f2937}
+.sidebar-header{padding:20px;border-bottom:1px solid #1f2937}
+.sidebar-header h3{color:#fff;font-size:15px;font-weight:700}
+.sidebar-header p{color:#6b7280;font-size:11px;margin-top:2px}
+.sidebar-sample{padding:8px 12px;margin:0 20px 0;background:#1f2937;border-radius:6px;font-size:11px;color:#9ca3af;display:none}
+.sidebar-sample.show{display:block}
+.ai-messages{flex:1;overflow-y:auto;padding:16px}
+.ai-msg{margin-bottom:12px;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.6;max-width:95%}
+.ai-msg.user{background:#1e3a5f;color:#dbeafe;margin-left:auto;border-bottom-right-radius:2px}
+.ai-msg.ai{background:#1f2937;color:#d1d5db;border-bottom-left-radius:2px}
+.ai-msg.ai .msg-label{font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.ai-msg pre{font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:pre-wrap;margin:8px 0;background:#111827;padding:10px;border-radius:4px;color:#e5e7eb}
+.ai-msg table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px}
+.ai-msg table th,.ai-msg table td{padding:6px 8px;border:1px solid #374151;text-align:left}
+.ai-msg table th{background:#111827;font-weight:600;color:#9ca3af}
+.ai-msg .fail-tag{display:inline-block;background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin:2px 0}
+.ai-msg .pass-tag{display:inline-block;background:#059669;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin:2px 0}
+.ai-msg .warn-tag{display:inline-block;background:#d97706;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin:2px 0}
+.ai-msg .gmp-ref{background:#1e293b;padding:8px 10px;border-radius:4px;border-left:3px solid #4b5563;margin:6px 0;font-size:11px;color:#9ca3af}
+.ai-loading{display:flex;gap:4px;padding:8px 0}
+.ai-loading span{width:6px;height:6px;background:#6b7280;border-radius:50%;animation:bounce .6s infinite alternate}
+.ai-loading span:nth-child(2){animation-delay:.2s}
+.ai-loading span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{to{opacity:.3;transform:translateY(-4px)}}
+.ai-input-area{padding:12px 16px;border-top:1px solid #1f2937;display:flex;gap:8px}
+.ai-input{flex:1;background:#1f2937;border:1px solid #374151;color:#fff;padding:10px 14px;border-radius:8px;font-size:13px;font-family:'IBM Plex Sans',sans-serif}
+.ai-input:focus{outline:none;border-color:var(--primary)}
+.ai-input::placeholder{color:#4b5563}
+.ai-send{background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px}
+.ai-send:hover{background:var(--primary-dark)}
+
+/* Nelson rules indicators */
+.nelson-flag{display:inline-block;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;margin-left:4px}
+
+/* Variable items */
+.var-item{background:var(--surface2);border:1px solid var(--border-light);border-radius:6px;padding:14px;margin-bottom:8px}
+.var-item-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.var-item-header strong{font-size:13px;color:var(--text)}
+
+/* Responsive */
+@media(max-width:1200px){.app{grid-template-columns:1fr}.sidebar{height:400px}}
+@media(max-width:768px){.form-row.c2,.form-row.c3,.form-row.c4{grid-template-columns:1fr}.stats-grid.c4,.stats-grid.c5,.stats-grid.c6{grid-template-columns:repeat(2,1fr)}.charts-grid.g2{grid-template-columns:1fr}}
+
+.hidden{display:none!important}
+.mt-8{margin-top:8px}.mt-12{margin-top:12px}.mt-16{margin-top:16px}.mb-12{margin-bottom:12px}.mb-16{margin-bottom:16px}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="main">
+<div class="header">
+<div class="header-left">
+<h1>PharmQC Analytics</h1>
+<p>GMP Validation Statistics Platform - Pharmaceutical Quality Control</p>
+</div>
+<div class="header-right">
+<input type="password" class="api-input" id="apiKey" placeholder="Claude API Key">
+<button class="btn-save-key" onclick="saveKey()">Save</button>
+</div>
+</div>
+
+<div class="tabs">
+<button class="tab active" onclick="openTab('tab-main',this)">Data Analysis</button>
+<button class="tab" onclick="openTab('tab-multivar',this)">Multi-Variable</button>
+<button class="tab" onclick="openTab('tab-tost',this)">TOST</button>
+<button class="tab" onclick="openTab('tab-anova',this)">ANOVA</button>
+<button class="tab" onclick="openTab('tab-spc',this)">SPC Control Chart</button>
+<button class="tab" onclick="openTab('tab-cpk',this)">Cpk Analysis</button>
+<button class="tab" onclick="openTab('tab-regression',this)">Regression</button>
+</div>
+
+<div class="content">
+
+<!-- ===== MAIN DATA ANALYSIS ===== -->
+<div id="tab-main" class="panel active">
+
+<!-- Sample Type -->
+<div class="sec">
+<div class="sec-title">Sample Type Selection <span class="badge badge-blue">Required</span></div>
+<div class="sample-types" id="sampleTypes">
+<div class="sample-type" data-type="api" onclick="selectSample(this)">API<small>Active Pharmaceutical Ingredient</small></div>
+<div class="sample-type" data-type="finished" onclick="selectSample(this)">Finished Product<small>Complete Dosage Form</small></div>
+<div class="sample-type" data-type="inprocess" onclick="selectSample(this)">In-Process<small>In-Process Sample</small></div>
+<div class="sample-type" data-type="stability" onclick="selectSample(this)">Stability<small>ICH Q1A</small></div>
+<div class="sample-type" data-type="validation" onclick="selectSample(this)">Validation<small>Process Validation</small></div>
+<div class="sample-type" data-type="cleaning" onclick="selectSample(this)">Cleaning<small>Cleaning Validation</small></div>
+<div class="sample-type" data-type="method" onclick="selectSample(this)">Method<small>Analytical Method Val.</small></div>
+</div>
+<div id="sampleInfo" class="result-box result-info" style="display:none"></div>
+</div>
+
+<!-- Data Input -->
+<div class="sec">
+<div class="sec-title">Data Input</div>
+<div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+<div class="upload-title">Click to upload or drag file here</div>
+<p>Supports Excel (.xlsx, .xls) and CSV (.csv) files</p>
+<input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(event)">
+</div>
+<div class="mt-12">
+<div class="form-group">
+<label class="form-label">Or enter data manually (comma-separated)</label>
+<textarea class="form-textarea" id="manualData" placeholder="99.5, 99.8, 100.1, 99.3, 100.5, 99.7, 100.2, 99.9, 100.3, 99.6">99.5, 99.8, 100.1, 99.3, 100.5, 99.7, 100.2, 99.9, 100.3, 99.6</textarea>
+</div>
+</div>
+<div class="form-row c3 mt-12">
+<div class="form-group">
+<label class="form-label">Dataset Name</label>
+<input class="form-input" id="dataName" value="Sample Dataset">
+</div>
+<div class="form-group">
+<label class="form-label">Specification Lower Limit (LSL)</label>
+<input class="form-input" type="number" id="specLSL" value="95.0" step="0.1">
+</div>
+<div class="form-group">
+<label class="form-label">Specification Upper Limit (USL)</label>
+<input class="form-input" type="number" id="specUSL" value="105.0" step="0.1">
+</div>
+</div>
+</div>
+
+<!-- Chart Selection -->
+<div class="sec">
+<div class="sec-title">Visualization Selection <span class="badge badge-purple">Multi-Select</span></div>
+<div class="chart-checks" id="chartChecks">
+<label class="chart-check"><input type="checkbox" value="histogram" checked> Histogram</label>
+<label class="chart-check"><input type="checkbox" value="boxplot"> Box Plot</label>
+<label class="chart-check"><input type="checkbox" value="normaldist"> Normal Distribution</label>
+<label class="chart-check"><input type="checkbox" value="scatter"> Scatter Plot</label>
+<label class="chart-check"><input type="checkbox" value="controlchart"> Control Chart</label>
+<label class="chart-check"><input type="checkbox" value="capability"> Capability Analysis</label>
+<label class="chart-check"><input type="checkbox" value="pareto"> Pareto Chart</label>
+<label class="chart-check"><input type="checkbox" value="trend"> Trend Analysis</label>
+</div>
+<div class="btn-group">
+<button class="btn btn-primary" onclick="runAnalysis()">Run Analysis</button>
+<button class="btn btn-success" onclick="requestAI()">AI Interpretation</button>
+<button class="btn btn-secondary" onclick="clearResults()">Clear</button>
+</div>
+</div>
+
+<!-- Results -->
+<div id="statsResults"></div>
+<div id="chartsArea"></div>
+<div id="gmpChecklist"></div>
+</div>
+
+<!-- ===== MULTI-VARIABLE ===== -->
+<div id="tab-multivar" class="panel">
+<div class="sec">
+<div class="sec-title">Multi-Variable Analysis</div>
+<div id="varList"></div>
+<div class="btn-group">
+<button class="btn btn-secondary btn-sm" onclick="addVar()">+ Add Variable</button>
+<button class="btn btn-secondary btn-sm" onclick="removeVar()">- Remove Last</button>
+</div>
+<div class="form-row c2 mt-16">
+<div class="form-group">
+<label class="form-label">Analysis Type</label>
+<select class="form-select" id="multiAnalysisType">
+<option value="compare">Compare Distributions</option>
+<option value="correlation">Correlation Analysis</option>
+<option value="trend">Trend Analysis</option>
+</select>
+</div>
+</div>
+<div class="btn-group">
+<button class="btn btn-primary" onclick="runMultivar()">Run Analysis</button>
+<button class="btn btn-success" onclick="requestAIMultivar()">AI Interpretation</button>
+</div>
+<div id="multivarResults"></div>
+<div id="multivarPlot" style="margin-top:16px"></div>
+</div>
+</div>
+
+<!-- ===== TOST ===== -->
+<div id="tab-tost" class="panel">
+<div class="sec">
+<div class="sec-title">TOST - Two One-Sided Tests (Equivalence Testing)</div>
+<div class="form-row c2">
+<div class="form-group">
+<label class="form-label">Reference Group Data</label>
+<textarea class="form-textarea" id="tostRef">99.5, 99.8, 100.1, 99.3, 100.2, 99.7, 100.0, 99.6</textarea>
+</div>
+<div class="form-group">
+<label class="form-label">Test Group Data</label>
+<textarea class="form-textarea" id="tostTest">99.7, 100.0, 99.9, 100.1, 99.8, 100.3, 99.5, 99.9</textarea>
+</div>
+</div>
+<div class="form-row c3">
+<div class="form-group">
+<label class="form-label">Equivalence Margin (%)</label>
+<input class="form-input" type="number" id="tostMargin" value="2.0" step="0.1">
+</div>
+<div class="form-group">
+<label class="form-label">Confidence Level</label>
+<select class="form-select" id="tostConf"><option value="0.90">90%</option><option value="0.95" selected>95%</option></select>
+</div>
+</div>
+<div class="btn-group">
+<button class="btn btn-primary" onclick="runTOST()">Run TOST</button>
+<button class="btn btn-success" onclick="requestAITOST()">AI Interpretation</button>
+</div>
+<div id="tostResults"></div>
+<div id="tostPlot" style="margin-top:16px"></div>
+</div>
+</div>
+
+<!-- ===== ANOVA ===== -->
+<div id="tab-anova" class="panel">
+<div class="sec">
+<div class="sec-title">ANOVA - Analysis of Variance</div>
+<div id="anovaGroups">
+<div class="form-group mb-12"><label class="form-label">Group A</label><textarea class="form-textarea anova-group" placeholder="Enter data">98.5, 99.2, 98.8, 99.1, 98.7</textarea></div>
+<div class="form-group mb-12"><label class="form-label">Group B</label><textarea class="form-textarea anova-group" placeholder="Enter data">99.8, 100.2, 99.5, 100.0, 99.7</textarea></div>
+<div class="form-group mb-12"><label class="form-label">Group C</label><textarea class="form-textarea anova-group" placeholder="Enter data">100.5, 101.0, 100.8, 100.3, 100.6</textarea></div>
+</div>
+<div class="btn-group">
+<button class="btn btn-secondary btn-sm" onclick="addAnovaGroup()">+ Add Group</button>
+<button class="btn btn-primary" onclick="runANOVA()">Run ANOVA</button>
+<button class="btn btn-success" onclick="requestAIAnova()">AI Interpretation</button>
+</div>
+<div id="anovaResults"></div>
+<div id="anovaPlot" style="margin-top:16px"></div>
+</div>
+</div>
+
+<!-- ===== SPC ===== -->
+<div id="tab-spc" class="panel">
+<div class="sec">
+<div class="sec-title">SPC - Statistical Process Control <span class="badge badge-green">Nelson Rules</span></div>
+<div class="form-group mb-12">
+<label class="form-label">Process Data (time-series, comma-separated)</label>
+<textarea class="form-textarea" id="spcData">99.5, 99.8, 100.1, 99.3, 100.5, 99.7, 100.2, 99.9, 100.3, 99.6, 100.0, 99.4, 100.1, 99.8, 100.4, 99.2, 99.9, 100.0, 99.7, 100.2</textarea>
+</div>
+<div class="form-row c3">
+<div class="form-group"><label class="form-label">Target Value</label><input class="form-input" type="number" id="spcTarget" value="100" step="0.1"></div>
+<div class="form-group"><label class="form-label">Sigma Multiplier</label><input class="form-input" type="number" id="spcSigma" value="3" step="0.5"></div>
+<div class="form-group"><label class="form-label">Chart Type</label>
+<select class="form-select" id="spcType"><option value="xbar">X-bar Chart</option><option value="individuals">Individuals Chart</option><option value="mr">Moving Range</option></select>
+</div>
+</div>
+<div class="btn-group">
+<button class="btn btn-primary" onclick="runSPC()">Generate Control Chart</button>
+<button class="btn btn-success" onclick="requestAISPC()">AI Interpretation</button>
+</div>
+<div id="spcResults"></div>
+<div id="spcPlot" style="margin-top:16px"></div>
+</div>
+</div>
+
+<!-- ===== CPK ===== -->
+<div id="tab-cpk" class="panel">
+<div class="sec">
+<div class="sec-title">Process Capability Analysis (Cp / Cpk / Pp / Ppk)</div>
+<div class="form-group mb-12">
+<label class="form-label">Process Data (comma-separated)</label>
+<textarea class="form-textarea" id="cpkData">99.5, 99.8, 100.1, 99.3, 100.5, 99.7, 100.2, 99.9, 100.3, 99.6, 100.0, 99.4, 100.1, 99.8, 100.4, 99.2, 99.9, 100.0, 99.7, 100.2</textarea>
+</div>
+<div class="form-row c3">
+<div class="form-group"><label class="form-label">LSL</label><input class="form-input" type="number" id="cpkLSL" value="95.0" step="0.1"></div>
+<div class="form-group"><label class="form-label">USL</label><input class="form-input" type="number" id="cpkUSL" value="105.0" step="0.1"></div>
+<div class="form-group"><label class="form-label">Target</label><input class="form-input" type="number" id="cpkTarget" value="100" step="0.1"></div>
+</div>
+<div class="btn-group">
+<button class="btn btn-primary" onclick="runCpk()">Calculate Capability</button>
+<button class="btn btn-success" onclick="requestAICpk()">AI Interpretation</button>
+</div>
+<div id="cpkResults"></div>
+<div id="cpkPlot" style="margin-top:16px"></div>
+</div>
+</div>
+
+<!-- ===== REGRESSION ===== -->
+<div id="tab-regression" class="panel">
+<div class="sec">
+<div class="sec-title">Regression Analysis</div>
+<div class="form-row c2">
+<div class="form-group"><label class="form-label">X Data (Independent)</label><textarea class="form-textarea" id="regX">1,2,3,4,5,6,7,8,9,10</textarea></div>
+<div class="form-group"><label class="form-label">Y Data (Dependent)</label><textarea class="form-textarea" id="regY">99.2,99.5,99.8,100.1,100.0,100.3,100.5,100.2,100.8,100.6</textarea></div>
+</div>
+<div class="btn-group">
+<button class="btn btn-primary" onclick="runRegression()">Run Regression</button>
+<button class="btn btn-success" onclick="requestAIRegression()">AI Interpretation</button>
+</div>
+<div id="regResults"></div>
+<div id="regPlot" style="margin-top:16px"></div>
+</div>
+</div>
+
+</div><!-- content -->
+</div><!-- main -->
+
+<!-- AI Sidebar -->
+<div class="sidebar">
+<div class="sidebar-header">
+<h3>AI Interpretation</h3>
+<p>Powered by Claude API - GMP Compliance Analysis</p>
+</div>
+<div class="sidebar-sample" id="sidebarSample"></div>
+<div class="ai-messages" id="aiMessages">
+<div class="ai-msg ai">
+<div class="msg-label">System</div>
+Welcome to PharmQC Analytics AI Assistant. Select a sample type, enter your data, and run analysis. Click "AI Interpretation" for GMP-compliant statistical evaluation with regulatory compliance assessment.
+</div>
+</div>
+<div class="ai-input-area">
+<input class="ai-input" id="aiInput" placeholder="Ask a question about your analysis..." onkeydown="if(event.key==='Enter')sendChat()">
+<button class="ai-send" onclick="sendChat()">Send</button>
+</div>
+</div>
+</div>
+
+<script>
+// ====== GLOBALS ======
+let G={
+ sample:null,data:[],context:'',varCount:0,anovaGroupCount:3,
+ sampleSpecs:{
+  api:{name:'API (Active Pharmaceutical Ingredient)',lsl:98.0,usl:102.0,rules:'KP/USP/EP',desc:'Assay 98.0~102.0%, Impurity limits per pharmacopeia'},
+  finished:{name:'Finished Product',lsl:95.0,usl:105.0,rules:'KP GMP Ch.5 / ICH Q6A',desc:'Assay 95.0~105.0%, Dissolution Q+5%, Content Uniformity AV<=15'},
+  inprocess:{name:'In-Process Sample',lsl:null,usl:null,rules:'Process Control Limits',desc:'Process-specific control limits, CPP monitoring'},
+  stability:{name:'Stability Sample',lsl:95.0,usl:105.0,rules:'ICH Q1A(R2)',desc:'Long-term 25C/60%RH, Accelerated 40C/75%RH, Shelf-life determination'},
+  validation:{name:'Validation Sample',lsl:95.0,usl:105.0,rules:'ICH Q8 QbD / KP GMP Ch.4',desc:'3 Batch consistency, Cpk >= 1.33, Process qualification'},
+  cleaning:{name:'Cleaning Validation',lsl:0,usl:null,rules:'PDE/ADE based limits',desc:'MAC/MACO calculation, Residual limits, TOC/Rinse sampling'},
+  method:{name:'Method Validation',lsl:null,usl:null,rules:'ICH Q2(R1)',desc:'Accuracy, Precision (Repeatability/Intermediate), Specificity, LOD/LOQ, Linearity, Range'}
+ }
+};
+
+// ====== UTILITY ======
+function parseData(s){return s.split(/[,\s]+/).map(Number).filter(x=>!isNaN(x))}
+function mean(a){return a.reduce((s,v)=>s+v,0)/a.length}
+function std(a,ddof=1){const m=mean(a);return Math.sqrt(a.reduce((s,v)=>s+(v-m)**2,0)/(a.length-ddof))}
+function median(a){const s=[...a].sort((x,y)=>x-y);const m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2}
+function q1(a){const s=[...a].sort((x,y)=>x-y);return s[Math.floor(s.length*0.25)]}
+function q3(a){const s=[...a].sort((x,y)=>x-y);return s[Math.floor(s.length*0.75)]}
+function skewness(a){const m=mean(a),s=std(a),n=a.length;return(n/((n-1)*(n-2)))*a.reduce((sum,v)=>sum+((v-m)/s)**3,0)}
+function kurtosis(a){const m=mean(a),s=std(a),n=a.length;return((n*(n+1))/((n-1)*(n-2)*(n-3)))*a.reduce((sum,v)=>sum+((v-m)/s)**4,0)-3*(n-1)**2/((n-2)*(n-3))}
+function normalPDF(x,m,s){return(1/(s*Math.sqrt(2*Math.PI)))*Math.exp(-0.5*((x-m)/s)**2)}
+function tCritical(df){if(df>=120)return 1.96;if(df>=60)return 2.0;if(df>=30)return 2.042;if(df>=20)return 2.086;if(df>=10)return 2.228;if(df>=5)return 2.571;return 2.776}
+function fCritical05(df1,df2){if(df1===1){if(df2>=30)return 4.17;if(df2>=10)return 4.96;return 6.61}if(df1===2){if(df2>=30)return 3.32;if(df2>=10)return 4.10;return 5.79}return 3.0}
+
+// ====== TAB / SAMPLE ======
+function openTab(id,btn){
+ document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+ document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ btn.classList.add('active');
+}
+function selectSample(el){
+ document.querySelectorAll('.sample-type').forEach(s=>s.classList.remove('active'));
+ el.classList.add('active');
+ G.sample=el.dataset.type;
+ const spec=G.sampleSpecs[G.sample];
+ document.getElementById('sampleInfo').style.display='block';
+ document.getElementById('sampleInfo').innerHTML=`<strong>${spec.name}</strong> - ${spec.desc}<br><span style="color:var(--text3);font-size:11px">Regulatory: ${spec.rules}</span>`;
+ if(spec.lsl!==null)document.getElementById('specLSL').value=spec.lsl;
+ if(spec.usl!==null)document.getElementById('specUSL').value=spec.usl;
+ const sb=document.getElementById('sidebarSample');
+ sb.classList.add('show');
+ sb.textContent=`Sample: ${spec.name}`;
+}
+
+// ====== FILE UPLOAD ======
+const uz=document.getElementById('uploadZone');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('dragover')});
+uz.addEventListener('dragleave',()=>uz.classList.remove('dragover'));
+uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)processFile(f)});
+function handleFile(e){const f=e.target.files[0];if(f)processFile(f)}
+function processFile(file){
+ const ext=file.name.split('.').pop().toLowerCase();
+ if(ext==='csv'){
+  Papa.parse(file,{complete:r=>{
+   const nums=r.data.flat().map(Number).filter(x=>!isNaN(x));
+   document.getElementById('manualData').value=nums.join(', ');
+   document.getElementById('dataName').value=file.name.replace(/\.[^.]+$/,'');
+  }});
+ }else{
+  const reader=new FileReader();
+  reader.onload=e=>{
+   const wb=XLSX.read(e.target.result,{type:'array'});
+   const ws=wb.Sheets[wb.SheetNames[0]];
+   const json=XLSX.utils.sheet_to_json(ws,{header:1});
+   const nums=json.flat().map(Number).filter(x=>!isNaN(x));
+   document.getElementById('manualData').value=nums.join(', ');
+   document.getElementById('dataName').value=file.name.replace(/\.[^.]+$/,'');
+  };
+  reader.readAsArrayBuffer(file);
+ }
+}
+
+// ====== CHECKBOX STYLING ======
+document.querySelectorAll('.chart-check input').forEach(cb=>{
+ cb.addEventListener('change',function(){this.closest('.chart-check').classList.toggle('checked',this.checked)});
+ if(cb.checked)cb.closest('.chart-check').classList.add('checked');
+});
+
+// ====== MAIN ANALYSIS ======
+function getSelectedCharts(){return[...document.querySelectorAll('#chartChecks input:checked')].map(c=>c.value)}
+function clearResults(){document.getElementById('statsResults').innerHTML='';document.getElementById('chartsArea').innerHTML='';document.getElementById('gmpChecklist').innerHTML=''}
+
+function runAnalysis(){
+ const data=parseData(document.getElementById('manualData').value);
+ if(data.length<2){alert('At least 2 data points required.');return}
+ G.data=data;
+ const name=document.getElementById('dataName').value;
+ const lsl=parseFloat(document.getElementById('specLSL').value);
+ const usl=parseFloat(document.getElementById('specUSL').value);
+ const charts=getSelectedCharts();
+ if(charts.length===0){alert('Select at least one chart type.');return}
+
+ const m=mean(data),s=std(data),mn=Math.min(...data),mx=Math.max(...data),med=median(data);
+ const n=data.length;
+ const cp=(usl-lsl)/(6*s);
+ const cpk=Math.min((usl-m)/(3*s),(m-lsl)/(3*s));
+ const oos=data.filter(v=>v<lsl||v>usl).length;
+ const sk=n>3?skewness(data):0;
+ const kurt=n>4?kurtosis(data):0;
+
+ // Stats display
+ let statsHtml=`<div class="sec"><div class="sec-title">Descriptive Statistics - ${name} <span class="badge ${oos>0?'badge-red':'badge-green'}">${oos>0?oos+' OOS':'ALL PASS'}</span></div>
+ <div class="stats-grid c6">
+  <div class="stat-card"><div class="label">N</div><div class="value">${n}</div></div>
+  <div class="stat-card primary"><div class="label">Mean</div><div class="value">${m.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">Std Dev</div><div class="value">${s.toFixed(4)}</div></div>
+  <div class="stat-card"><div class="label">Median</div><div class="value">${med.toFixed(3)}</div></div>
+  <div class="stat-card ${cpk>=1.33?'success':cpk>=1.0?'warning':'danger'}"><div class="label">Cpk</div><div class="value">${cpk.toFixed(3)}</div></div>
+  <div class="stat-card ${oos>0?'danger':'success'}"><div class="label">OOS</div><div class="value">${oos}</div></div>
+ </div>
+ <div class="stats-grid c6">
+  <div class="stat-card"><div class="label">Min</div><div class="value">${mn.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">Max</div><div class="value">${mx.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">Range</div><div class="value">${(mx-mn).toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">Cp</div><div class="value">${cp.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">Skewness</div><div class="value">${sk.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">Kurtosis</div><div class="value">${kurt.toFixed(3)}</div></div>
+ </div>`;
+
+ // Spec compliance
+ if(oos>0){
+  const oosVals=data.filter(v=>v<lsl||v>usl);
+  statsHtml+=`<div class="result-box result-fail"><strong>SPECIFICATION FAILURE - ${oos} out of ${n} values out of specification</strong>
+  OOS values: ${oosVals.map(v=>v.toFixed(3)).join(', ')}<br>Specification: ${lsl} ~ ${usl}</div>`;
+ }else{
+  statsHtml+=`<div class="result-box result-pass"><strong>ALL VALUES WITHIN SPECIFICATION</strong>Specification: ${lsl} ~ ${usl} | All ${n} values conforming</div>`;
+ }
+ if(cpk<1.33){
+  statsHtml+=`<div class="result-box result-warn"><strong>PROCESS CAPABILITY WARNING - Cpk = ${cpk.toFixed(3)}</strong>
+  Cpk < 1.33: Process may not consistently meet specifications. ${cpk<1.0?'Cpk < 1.0: Process is NOT capable.':'Cpk between 1.0~1.33: Marginal capability.'}</div>`;
+ }
+ statsHtml+=`</div>`;
+ document.getElementById('statsResults').innerHTML=statsHtml;
+
+ // Build context
+ G.context=`Dataset: ${name}\nSample Type: ${G.sample?G.sampleSpecs[G.sample].name:'Not selected'}\nN=${n}, Mean=${m.toFixed(4)}, SD=${s.toFixed(4)}, Median=${med.toFixed(3)}\nMin=${mn.toFixed(3)}, Max=${mx.toFixed(3)}, Range=${(mx-mn).toFixed(3)}\nLSL=${lsl}, USL=${usl}\nCp=${cp.toFixed(4)}, Cpk=${cpk.toFixed(4)}\nOOS count=${oos}${oos>0?', OOS values: '+data.filter(v=>v<lsl||v>usl).map(v=>v.toFixed(3)).join(', '):''}\nSkewness=${sk.toFixed(3)}, Kurtosis=${kurt.toFixed(3)}`;
+
+ // Charts
+ const gridCols=charts.length===1?'g1':'g2';
+ let chartsHtml=`<div class="charts-grid ${gridCols}">`;
+ charts.forEach(c=>{
+  chartsHtml+=`<div class="chart-wrap"><div class="chart-header">${chartLabel(c)}</div><div id="chart_${c}" style="height:380px"></div></div>`;
+ });
+ chartsHtml+=`</div>`;
+ document.getElementById('chartsArea').innerHTML=chartsHtml;
+
+ // Render each chart
+ const colors={main:'#0f52ba',line:'#0f52ba',fill:'rgba(15,82,186,0.15)',red:'#c41e3a',green:'#0d7a3f',orange:'#b45309',grid:'#e5e7eb'};
+ const baseLayout={font:{family:'IBM Plex Sans'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',margin:{l:50,r:30,t:30,b:40},xaxis:{gridcolor:colors.grid},yaxis:{gridcolor:colors.grid}};
+
+ charts.forEach(c=>{
+  switch(c){
+   case 'histogram':{
+    const trace={x:data,type:'histogram',marker:{color:colors.main,line:{color:'#0a3d8f',width:1}},opacity:0.85};
+    Plotly.newPlot('chart_histogram',[trace],{...baseLayout,xaxis:{...baseLayout.xaxis,title:'Value'},yaxis:{...baseLayout.yaxis,title:'Frequency'}},{responsive:true});
+    break;
+   }
+   case 'boxplot':{
+    const trace={y:data,type:'box',boxmean:'sd',marker:{color:colors.main},line:{color:colors.main},fillcolor:colors.fill,name:name};
+    const shapes=[];
+    shapes.push({type:'line',y0:lsl,y1:lsl,x0:-0.5,x1:0.5,line:{color:colors.red,width:2,dash:'dash'}});
+    shapes.push({type:'line',y0:usl,y1:usl,x0:-0.5,x1:0.5,line:{color:colors.red,width:2,dash:'dash'}});
+    Plotly.newPlot('chart_boxplot',[trace],{...baseLayout,shapes,yaxis:{...baseLayout.yaxis,title:'Value'}},{responsive:true});
+    break;
+   }
+   case 'normaldist':{
+    const xMin=m-4*s,xMax=m+4*s;
+    const xVals=Array.from({length:200},(_,i)=>xMin+i*(xMax-xMin)/199);
+    const yVals=xVals.map(x=>normalPDF(x,m,s));
+    const curve={x:xVals,y:yVals,mode:'lines',line:{color:colors.main,width:2},fill:'tozeroy',fillcolor:colors.fill,name:'Normal Dist'};
+    const shapes=[
+     {type:'line',x0:lsl,x1:lsl,y0:0,y1:Math.max(...yVals),line:{color:colors.red,width:2,dash:'dash'}},
+     {type:'line',x0:usl,x1:usl,y0:0,y1:Math.max(...yVals),line:{color:colors.red,width:2,dash:'dash'}},
+     {type:'line',x0:m,x1:m,y0:0,y1:Math.max(...yVals),line:{color:colors.green,width:2}}
+    ];
+    const rug={x:data,y:data.map(()=>-Math.max(...yVals)*0.03),mode:'markers',marker:{color:colors.main,size:6,symbol:'line-ns-open'},name:'Data'};
+    Plotly.newPlot('chart_normaldist',[curve,rug],{...baseLayout,shapes,xaxis:{...baseLayout.xaxis,title:'Value'},yaxis:{...baseLayout.yaxis,title:'Density'}},{responsive:true});
+    break;
+   }
+   case 'scatter':{
+    const trace={x:data.map((_,i)=>i+1),y:data,mode:'markers',marker:{color:colors.main,size:8}};
+    const shapes=[
+     {type:'line',x0:0,x1:n+1,y0:lsl,y1:lsl,line:{color:colors.red,width:1.5,dash:'dash'}},
+     {type:'line',x0:0,x1:n+1,y0:usl,y1:usl,line:{color:colors.red,width:1.5,dash:'dash'}},
+     {type:'line',x0:0,x1:n+1,y0:m,y1:m,line:{color:colors.green,width:1.5}}
+    ];
+    Plotly.newPlot('chart_scatter',[trace],{...baseLayout,shapes,xaxis:{...baseLayout.xaxis,title:'Observation'},yaxis:{...baseLayout.yaxis,title:'Value'}},{responsive:true});
+    break;
+   }
+   case 'controlchart':{
+    const ucl=m+3*s,lcl=m-3*s;
+    const xIdx=data.map((_,i)=>i+1);
+    const dataTrace={x:xIdx,y:data,mode:'lines+markers',marker:{color:data.map(v=>(v>ucl||v<lcl)?colors.red:colors.main),size:7},line:{color:colors.main,width:1.5},name:'Data'};
+    const clTrace={x:xIdx,y:Array(n).fill(m),mode:'lines',line:{color:colors.green,width:1.5,dash:'dash'},name:`CL (${m.toFixed(2)})`};
+    const uclTrace={x:xIdx,y:Array(n).fill(ucl),mode:'lines',line:{color:colors.red,width:1.5,dash:'dot'},name:`UCL (${ucl.toFixed(2)})`};
+    const lclTrace={x:xIdx,y:Array(n).fill(lcl),mode:'lines',line:{color:colors.red,width:1.5,dash:'dot'},name:`LCL (${lcl.toFixed(2)})`};
+    Plotly.newPlot('chart_controlchart',[dataTrace,clTrace,uclTrace,lclTrace],{...baseLayout,xaxis:{...baseLayout.xaxis,title:'Observation'},yaxis:{...baseLayout.yaxis,title:'Value'},showlegend:true,legend:{x:0,y:1.12,orientation:'h'}},{responsive:true});
+    break;
+   }
+   case 'capability':{
+    const xMin=Math.min(lsl,m-4*s),xMax=Math.max(usl,m+4*s);
+    const xVals=Array.from({length:300},(_,i)=>xMin+i*(xMax-xMin)/299);
+    const yVals=xVals.map(x=>normalPDF(x,m,s));
+    const curve={x:xVals,y:yVals,mode:'lines',fill:'tozeroy',fillcolor:colors.fill,line:{color:colors.main,width:2},name:'Process'};
+    const shapes=[
+     {type:'rect',x0:lsl,x1:usl,y0:0,y1:Math.max(...yVals)*1.1,fillcolor:'rgba(13,122,63,0.05)',line:{width:0}},
+     {type:'line',x0:lsl,x1:lsl,y0:0,y1:Math.max(...yVals)*1.1,line:{color:colors.red,width:2.5}},
+     {type:'line',x0:usl,x1:usl,y0:0,y1:Math.max(...yVals)*1.1,line:{color:colors.red,width:2.5}},
+     {type:'line',x0:m,x1:m,y0:0,y1:Math.max(...yVals)*1.1,line:{color:colors.main,width:2}}
+    ];
+    const annotations=[
+     {x:lsl,y:Math.max(...yVals)*1.05,text:`LSL=${lsl}`,showarrow:false,font:{size:10,color:colors.red}},
+     {x:usl,y:Math.max(...yVals)*1.05,text:`USL=${usl}`,showarrow:false,font:{size:10,color:colors.red}},
+     {x:(lsl+usl)/2,y:Math.max(...yVals)*0.5,text:`Cp=${cp.toFixed(3)}\nCpk=${cpk.toFixed(3)}`,showarrow:false,font:{size:12,color:colors.main},bgcolor:'rgba(255,255,255,0.8)'}
+    ];
+    Plotly.newPlot('chart_capability',[curve],{...baseLayout,shapes,annotations,xaxis:{...baseLayout.xaxis,title:'Value'},yaxis:{...baseLayout.yaxis,title:'Density'}},{responsive:true});
+    break;
+   }
+   case 'pareto':{
+    // Deviation bins
+    const bins=[{label:'Below LSL',count:data.filter(v=>v<lsl).length},{label:'LSL~-2σ',count:data.filter(v=>v>=lsl&&v<m-2*s).length},{label:'-2σ~-1σ',count:data.filter(v=>v>=m-2*s&&v<m-s).length},{label:'-1σ~Mean',count:data.filter(v=>v>=m-s&&v<m).length},{label:'Mean~+1σ',count:data.filter(v=>v>=m&&v<m+s).length},{label:'+1σ~+2σ',count:data.filter(v=>v>=m+s&&v<m+2*s).length},{label:'+2σ~USL',count:data.filter(v=>v>=m+2*s&&v<=usl).length},{label:'Above USL',count:data.filter(v=>v>usl).length}];
+    bins.sort((a,b)=>b.count-a.count);
+    const total=bins.reduce((s,b)=>s+b.count,0);
+    let cumPct=0;const cumPcts=bins.map(b=>{cumPct+=b.count/total*100;return cumPct});
+    const bar={x:bins.map(b=>b.label),y:bins.map(b=>b.count),type:'bar',marker:{color:bins.map(b=>(b.label==='Below LSL'||b.label==='Above USL')?colors.red:colors.main)},name:'Count'};
+    const line={x:bins.map(b=>b.label),y:cumPcts,mode:'lines+markers',yaxis:'y2',line:{color:colors.orange,width:2},marker:{size:6,color:colors.orange},name:'Cumulative %'};
+    Plotly.newPlot('chart_pareto',[bar,line],{...baseLayout,yaxis:{...baseLayout.yaxis,title:'Count'},yaxis2:{title:'Cumulative %',overlaying:'y',side:'right',range:[0,105],gridcolor:'transparent'},showlegend:true,legend:{x:0,y:1.12,orientation:'h'}},{responsive:true});
+    break;
+   }
+   case 'trend':{
+    const xIdx=data.map((_,i)=>i+1);
+    // Moving average
+    const ma=data.map((v,i)=>{if(i<2)return null;return(data[i]+data[i-1]+data[i-2])/3});
+    const dataTrace={x:xIdx,y:data,mode:'lines+markers',marker:{size:6,color:colors.main},line:{color:colors.main,width:1.5},name:'Data'};
+    const maTrace={x:xIdx,y:ma,mode:'lines',line:{color:colors.orange,width:2,dash:'dash'},name:'3-pt Moving Avg'};
+    // Linear trend
+    const xm=mean(xIdx),ym=mean(data);
+    const slope=xIdx.reduce((s,x,i)=>s+(x-xm)*(data[i]-ym),0)/xIdx.reduce((s,x)=>s+(x-xm)**2,0);
+    const intercept=ym-slope*xm;
+    const trendTrace={x:xIdx,y:xIdx.map(x=>slope*x+intercept),mode:'lines',line:{color:colors.green,width:2},name:`Trend (slope=${slope.toFixed(4)})`};
+    Plotly.newPlot('chart_trend',[dataTrace,maTrace,trendTrace],{...baseLayout,xaxis:{...baseLayout.xaxis,title:'Observation'},yaxis:{...baseLayout.yaxis,title:'Value'},showlegend:true,legend:{x:0,y:1.12,orientation:'h'}},{responsive:true});
+    break;
+   }
+  }
+ });
+
+ // GMP Checklist
+ buildGMPChecklist(data,m,s,cp,cpk,lsl,usl,oos,n);
+}
+
+function chartLabel(c){
+ const map={histogram:'Histogram',boxplot:'Box Plot',normaldist:'Normal Distribution Curve',scatter:'Scatter Plot',controlchart:'Control Chart (X-bar)',capability:'Process Capability (Cp/Cpk)',pareto:'Pareto Chart',trend:'Trend Analysis'};
+ return map[c]||c;
+}
+
+// ====== GMP CHECKLIST ======
+function buildGMPChecklist(data,m,s,cp,cpk,lsl,usl,oos,n){
+ const checks=[];
+ // Spec compliance
+ checks.push({rule:'Specification Compliance',ref:G.sample?G.sampleSpecs[G.sample].rules:'KP GMP',criteria:`${lsl} ~ ${usl}`,result:oos===0?'PASS':`FAIL (${oos} OOS)`,pass:oos===0});
+ // Cpk
+ checks.push({rule:'Process Capability (Cpk >= 1.33)',ref:'ICH Q8 QbD / KP GMP Ch.4',criteria:'Cpk >= 1.33',result:`Cpk = ${cpk.toFixed(3)}`,pass:cpk>=1.33});
+ // Cp
+ checks.push({rule:'Potential Capability (Cp >= 1.33)',ref:'Six Sigma / Process Validation',criteria:'Cp >= 1.33',result:`Cp = ${cp.toFixed(3)}`,pass:cp>=1.33});
+ // RSD
+ const rsd=(s/m)*100;
+ checks.push({rule:'RSD (Precision)',ref:'ICH Q2(R1)',criteria:'RSD <= 2.0%',result:`RSD = ${rsd.toFixed(2)}%`,pass:rsd<=2.0});
+ // Sample size
+ checks.push({rule:'Sample Size Adequacy',ref:'Statistical Requirements',criteria:'N >= 10 recommended',result:`N = ${n}`,pass:n>=10});
+ // Normality (rough check via skewness/kurtosis)
+ const sk=Math.abs(skewness(data)),kt=Math.abs(kurtosis(data));
+ checks.push({rule:'Normality Assessment',ref:'Distribution Analysis',criteria:'|Skewness| < 1, |Kurtosis| < 3',result:`Skew=${sk.toFixed(2)}, Kurt=${kt.toFixed(2)}`,pass:sk<1&&kt<3});
+
+ let html=`<div class="sec"><div class="sec-title">GMP Compliance Checklist <span class="badge ${checks.every(c=>c.pass)?'badge-green':'badge-red'}">${checks.filter(c=>!c.pass).length} Non-Conformance</span></div>
+ <table class="data-table"><thead><tr><th>Check Item</th><th>Regulatory Reference</th><th>Criteria</th><th>Result</th><th>Status</th></tr></thead><tbody>`;
+ checks.forEach(c=>{
+  html+=`<tr><td>${c.rule}</td><td style="font-family:'IBM Plex Sans';font-size:11px;color:var(--text3)">${c.ref}</td><td>${c.criteria}</td><td>${c.result}</td><td style="font-weight:700;color:${c.pass?'var(--success)':'var(--danger)'}">${c.pass?'PASS':'FAIL'}</td></tr>`;
+ });
+ html+=`</tbody></table></div>`;
+ document.getElementById('gmpChecklist').innerHTML=html;
+}
+
+// ====== MULTI-VARIABLE ======
+function addVar(){
+ G.varCount++;
+ const d=document.createElement('div');d.className='var-item';d.id=`var_${G.varCount}`;
+ d.innerHTML=`<div class="var-item-header"><strong>Variable ${G.varCount}</strong><button class="btn btn-danger btn-sm" onclick="this.closest('.var-item').remove()">Remove</button></div>
+ <div class="form-row c2"><div class="form-group"><label class="form-label">Name</label><input class="form-input var-name" value="Variable ${G.varCount}"></div>
+ <div class="form-group"><label class="form-label">Data (comma-separated)</label><textarea class="form-textarea var-data" placeholder="Enter data"></textarea></div></div>`;
+ document.getElementById('varList').appendChild(d);
+}
+function removeVar(){const items=document.querySelectorAll('#varList .var-item');if(items.length)items[items.length-1].remove()}
+
+function runMultivar(){
+ const items=document.querySelectorAll('#varList .var-item');
+ const vars=[];
+ items.forEach(it=>{
+  const name=it.querySelector('.var-name').value;
+  const data=parseData(it.querySelector('.var-data').value);
+  if(data.length>=2)vars.push({name,data});
+ });
+ if(vars.length<2){alert('At least 2 variables with data required.');return}
+ const type=document.getElementById('multiAnalysisType').value;
+
+ G.context=`Multi-Variable Analysis (${type}):\n`+vars.map(v=>`${v.name}: N=${v.data.length}, Mean=${mean(v.data).toFixed(3)}, SD=${std(v.data).toFixed(4)}`).join('\n');
+
+ let html='';
+ if(type==='compare'){
+  html=`<table class="data-table mt-16"><thead><tr><th>Variable</th><th>N</th><th>Mean</th><th>Std Dev</th><th>Min</th><th>Max</th><th>RSD%</th></tr></thead><tbody>`;
+  vars.forEach(v=>{const m=mean(v.data),s=std(v.data);html+=`<tr><td>${v.name}</td><td>${v.data.length}</td><td>${m.toFixed(3)}</td><td>${s.toFixed(4)}</td><td>${Math.min(...v.data).toFixed(3)}</td><td>${Math.max(...v.data).toFixed(3)}</td><td>${(s/m*100).toFixed(2)}</td></tr>`});
+  html+=`</tbody></table>`;
+  Plotly.newPlot('multivarPlot',vars.map(v=>({y:v.data,type:'box',name:v.name,boxmean:'sd'})),{font:{family:'IBM Plex Sans'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:450,margin:{l:50,r:30,t:30,b:40}},{responsive:true});
+ }else if(type==='correlation'){
+  if(vars.length!==2){alert('Correlation requires exactly 2 variables.');return}
+  const[v1,v2]=vars;const ml=Math.min(v1.data.length,v2.data.length);
+  const x=v1.data.slice(0,ml),y=v2.data.slice(0,ml);
+  const mx=mean(x),my=mean(y);
+  const num=x.reduce((s,xi,i)=>s+(xi-mx)*(y[i]-my),0);
+  const dx=Math.sqrt(x.reduce((s,xi)=>s+(xi-mx)**2,0));
+  const dy=Math.sqrt(y.reduce((s,yi)=>s+(yi-my)**2,0));
+  const r=num/(dx*dy);const r2=r*r;
+  G.context+=`\nCorrelation r=${r.toFixed(4)}, R2=${r2.toFixed(4)}`;
+  html=`<div class="stats-grid c3 mt-16"><div class="stat-card primary"><div class="label">r</div><div class="value">${r.toFixed(4)}</div></div><div class="stat-card"><div class="label">R-squared</div><div class="value">${r2.toFixed(4)}</div></div><div class="stat-card"><div class="label">Strength</div><div class="value">${Math.abs(r)>0.7?'Strong':Math.abs(r)>0.4?'Moderate':'Weak'}</div></div></div>`;
+  Plotly.newPlot('multivarPlot',[{x,y,mode:'markers',marker:{color:'#0f52ba',size:9},name:'Data'}],{font:{family:'IBM Plex Sans'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:450,xaxis:{title:v1.name},yaxis:{title:v2.name},margin:{l:50,r:30,t:30,b:40}},{responsive:true});
+ }else{
+  Plotly.newPlot('multivarPlot',vars.map(v=>({x:v.data.map((_,i)=>i+1),y:v.data,mode:'lines+markers',name:v.name,line:{width:2},marker:{size:5}})),{font:{family:'IBM Plex Sans'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:450,xaxis:{title:'Time Point'},yaxis:{title:'Value'},margin:{l:50,r:30,t:30,b:40}},{responsive:true});
+  html=`<div class="result-box result-info mt-16"><strong>Trend Analysis</strong> Visual comparison of ${vars.length} variables over time.</div>`;
+ }
+ document.getElementById('multivarResults').innerHTML=html;
+}
+
+// ====== TOST ======
+function runTOST(){
+ const ref=parseData(document.getElementById('tostRef').value);
+ const test=parseData(document.getElementById('tostTest').value);
+ const margin=parseFloat(document.getElementById('tostMargin').value);
+ if(ref.length<2||test.length<2){alert('Each group needs >= 2 data points.');return}
+ const m1=mean(ref),m2=mean(test),s1=std(ref),s2=std(test);
+ const diff=m1-m2;
+ const pooledSE=Math.sqrt(s1**2/ref.length+s2**2/test.length);
+ const df=ref.length+test.length-2;
+ const tc=tCritical(df);
+ const ciL=diff-tc*pooledSE,ciU=diff+tc*pooledSE;
+ const eqMargin=m1*(margin/100);
+ const isEq=ciL>-eqMargin&&ciU<eqMargin;
+
+ G.context=`TOST Equivalence Test:\nRef: N=${ref.length}, Mean=${m1.toFixed(3)}, SD=${s1.toFixed(4)}\nTest: N=${test.length}, Mean=${m2.toFixed(3)}, SD=${s2.toFixed(4)}\nDifference=${diff.toFixed(4)}, 90% CI=[${ciL.toFixed(4)}, ${ciU.toFixed(4)}]\nEquivalence margin=+/-${eqMargin.toFixed(3)}\nConclusion: ${isEq?'EQUIVALENT':'NOT EQUIVALENT'}`;
+
+ let html=`<div class="stats-grid c4 mt-16">
+  <div class="stat-card"><div class="label">Ref Mean</div><div class="value">${m1.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">Test Mean</div><div class="value">${m2.toFixed(3)}</div></div>
+  <div class="stat-card primary"><div class="label">Difference</div><div class="value">${diff.toFixed(4)}</div></div>
+  <div class="stat-card ${isEq?'success':'danger'}"><div class="label">Result</div><div class="value">${isEq?'EQUIV':'NOT EQ'}</div></div>
+ </div>
+ <div class="result-box ${isEq?'result-pass':'result-fail'}"><strong>${isEq?'EQUIVALENCE DEMONSTRATED':'EQUIVALENCE NOT DEMONSTRATED'}</strong>
+ 90% CI: [${ciL.toFixed(4)}, ${ciU.toFixed(4)}] | Margin: +/-${eqMargin.toFixed(3)}</div>`;
+ document.getElementById('tostResults').innerHTML=html;
+ Plotly.newPlot('tostPlot',[{y:ref,type:'box',name:'Reference',boxmean:'sd',marker:{color:'#0f52ba'}},{y:test,type:'box',name:'Test',boxmean:'sd',marker:{color:'#b45309'}}],{font:{family:'IBM Plex Sans'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:400,margin:{l:50,r:30,t:30,b:40}},{responsive:true});
+}
+
+// ====== ANOVA ======
+function addAnovaGroup(){
+ G.anovaGroupCount++;
+ const d=document.createElement('div');d.className='form-group mb-12';
+ d.innerHTML=`<label class="form-label">Group ${String.fromCharCode(64+G.anovaGroupCount)}</label><textarea class="form-textarea anova-group" placeholder="Enter data"></textarea>`;
+ document.getElementById('anovaGroups').appendChild(d);
+}
+function runANOVA(){
+ const groups=[...document.querySelectorAll('.anova-group')].map(t=>parseData(t.value)).filter(g=>g.length>=2);
+ if(groups.length<2){alert('At least 2 groups with data required.');return}
+ const all=groups.flat();const gm=mean(all);
+ const ssB=groups.reduce((s,g)=>s+g.length*(mean(g)-gm)**2,0);
+ const ssW=groups.reduce((s,g)=>s+g.reduce((ss,x)=>ss+(x-mean(g))**2,0),0);
+ const dfB=groups.length-1,dfW=all.length-groups.length;
+ const msB=ssB/dfB,msW=ssW/dfW;
+ const F=msB/msW;
+ const fCrit=fCritical05(dfB,dfW);
+ const sig=F>fCrit;
+
+ G.context=`ANOVA Results:\nGroups=${groups.length}, Total N=${all.length}\nSS Between=${ssB.toFixed(3)}, SS Within=${ssW.toFixed(3)}\nMS Between=${msB.toFixed(3)}, MS Within=${msW.toFixed(3)}\nF-statistic=${F.toFixed(3)}, F-critical(0.05)=${fCrit.toFixed(3)}\nConclusion: ${sig?'Significant difference':'No significant difference'}`;
+
+ let html=`<div class="stats-grid c4 mt-16">
+  <div class="stat-card primary"><div class="label">F-Statistic</div><div class="value">${F.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">F-Critical (0.05)</div><div class="value">${fCrit.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">df (Between, Within)</div><div class="value">${dfB}, ${dfW}</div></div>
+  <div class="stat-card ${sig?'danger':'success'}"><div class="label">Result</div><div class="value">${sig?'SIGNIFICANT':'NOT SIG'}</div></div>
+ </div>
+ <table class="data-table mt-12"><thead><tr><th>Source</th><th>SS</th><th>df</th><th>MS</th><th>F</th></tr></thead><tbody>
+ <tr><td>Between Groups</td><td>${ssB.toFixed(4)}</td><td>${dfB}</td><td>${msB.toFixed(4)}</td><td>${F.toFixed(4)}</td></tr>
+ <tr><td>Within Groups</td><td>${ssW.toFixed(4)}</td><td>${dfW}</td><td>${msW.toFixed(4)}</td><td>-</td></tr>
+ <tr><td><strong>Total</strong></td><td>${(ssB+ssW).toFixed(4)}</td><td>${dfB+dfW}</td><td>-</td><td>-</td></tr>
+ </tbody></table>
+ <div class="result-box ${sig?'result-fail':'result-pass'}"><strong>${sig?'SIGNIFICANT DIFFERENCE DETECTED':'NO SIGNIFICANT DIFFERENCE'}</strong>
+ ${sig?'At least one group mean differs significantly (p < 0.05)':'Group means are statistically similar (p > 0.05)'}</div>`;
+ document.getElementById('anovaResults').innerHTML=html;
+ Plotly.newPlot('anovaPlot',groups.map((g,i)=>({y:g,type:'box',name:`Group ${String.fromCharCode(65+i)}`,boxmean:'sd'})),{font:{family:'IBM Plex Sans'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:400,margin:{l:50,r:30,t:30,b:40}},{responsive:true});
+}
+
+// ====== SPC ======
+function checkNelsonRules(data,m,s){
+ const flags=[];const n=data.length;
+ // Rule 1: point beyond 3σ
+ data.forEach((v,i)=>{if(Math.abs(v-m)>3*s)flags.push({rule:1,idx:i,desc:`Point ${i+1} beyond 3-sigma`})});
+ // Rule 2: 9 consecutive points same side of mean
+ for(let i=0;i<=n-9;i++){const side=data.slice(i,i+9).every(v=>v>m)||data.slice(i,i+9).every(v=>v<m);if(side)flags.push({rule:2,idx:i,desc:`Points ${i+1}-${i+9}: 9 consecutive same side`})}
+ // Rule 3: 6 consecutive increasing or decreasing
+ for(let i=0;i<=n-6;i++){let inc=true,dec=true;for(let j=i;j<i+5;j++){if(data[j+1]<=data[j])inc=false;if(data[j+1]>=data[j])dec=false}if(inc||dec)flags.push({rule:3,idx:i,desc:`Points ${i+1}-${i+6}: 6 consecutive ${inc?'increasing':'decreasing'}`})}
+ // Rule 5: 2 of 3 beyond 2σ same side
+ for(let i=0;i<=n-3;i++){const seg=data.slice(i,i+3);const above=seg.filter(v=>v>m+2*s).length;const below=seg.filter(v=>v<m-2*s).length;if(above>=2)flags.push({rule:5,idx:i,desc:`Points ${i+1}-${i+3}: 2/3 beyond +2-sigma`});if(below>=2)flags.push({rule:5,idx:i,desc:`Points ${i+1}-${i+3}: 2/3 beyond -2-sigma`})}
+ return flags;
+}
+
+function runSPC(){
+ const data=parseData(document.getElementById('spcData').value);
+ if(data.length<5){alert('At least 5 data points required.');return}
+ const sigma=parseFloat(document.getElementById('spcSigma').value);
+ const m=mean(data),s=std(data);
+ const ucl=m+sigma*s,lcl=m-sigma*s;
+ const oos=data.filter(v=>v>ucl||v<lcl);
+ const nelson=checkNelsonRules(data,m,s);
+
+ G.context=`SPC Control Chart:\nN=${data.length}, CL=${m.toFixed(4)}, UCL=${ucl.toFixed(4)}, LCL=${lcl.toFixed(4)}\nOOS points=${oos.length}\nNelson Rule violations=${nelson.length}\n${nelson.map(f=>`Rule ${f.rule}: ${f.desc}`).join('\n')}`;
+
+ const oosIdx=new Set();data.forEach((v,i)=>{if(v>ucl||v<lcl)oosIdx.add(i)});
+ const nelsonIdx=new Set(nelson.map(f=>f.idx));
+
+ let html=`<div class="stats-grid c5 mt-16">
+  <div class="stat-card primary"><div class="label">Center Line</div><div class="value">${m.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">UCL</div><div class="value">${ucl.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">LCL</div><div class="value">${lcl.toFixed(3)}</div></div>
+  <div class="stat-card ${oos.length>0?'danger':'success'}"><div class="label">OOS Points</div><div class="value">${oos.length}</div></div>
+  <div class="stat-card ${nelson.length>0?'warning':'success'}"><div class="label">Nelson Violations</div><div class="value">${nelson.length}</div></div>
+ </div>`;
+
+ if(nelson.length>0){
+  html+=`<div class="result-box result-warn"><strong>NELSON RULE VIOLATIONS DETECTED</strong>`;
+  nelson.forEach(f=>{html+=`<br>Rule ${f.rule}: ${f.desc}`});
+  html+=`</div>`;
+ }
+
+ const isIC=oos.length===0&&nelson.length===0;
+ html+=`<div class="result-box ${isIC?'result-pass':'result-fail'}"><strong>${isIC?'PROCESS IN CONTROL':'PROCESS SIGNALS DETECTED'}</strong>
+ ${isIC?'All points within control limits, no Nelson Rule violations':'Review flagged points and investigate assignable causes'}</div>`;
+ document.getElementById('spcResults').innerHTML=html;
+
+ const xIdx=data.map((_,i)=>i+1);
+ const colors2=data.map((v,i)=>oosIdx.has(i)?'#c41e3a':nelsonIdx.has(i)?'#b45309':'#0f52ba');
+ const traces=[
+  {x:xIdx,y:data,mode:'lines+markers',marker:{color:colors2,size:8},line:{color:'#0f52ba',width:1.5},name:'Data'},
+  {x:xIdx,y:Array(data.length).fill(m),mode:'lines',line:{color:'#0d7a3f',width:1.5,dash:'dash'},name:`CL (${m.toFixed(2)})`},
+  {x:xIdx,y:Array(data.length).fill(ucl),mode:'lines',line:{color:'#c41e3a',width:1.5,dash:'dot'},name:`UCL (${ucl.toFixed(2)})`},
+  {x:xIdx,y:Array(data.length).fill(lcl),mode:'lines',line:{color:'#c41e3a',width:1.5,dash:'dot'},name:`LCL (${lcl.toFixed(2)})`}
+ ];
+ // Add sigma zones
+ const zones=[{y:m+2*s,c:'rgba(255,193,7,0.15)'},{y:m+s,c:'rgba(76,175,80,0.08)'},{y:m-s,c:'rgba(76,175,80,0.08)'},{y:m-2*s,c:'rgba(255,193,7,0.15)'}];
+ Plotly.newPlot('spcPlot',traces,{font:{family:'IBM Plex Sans'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:450,xaxis:{title:'Observation',gridcolor:'#e5e7eb'},yaxis:{title:'Value',gridcolor:'#e5e7eb'},showlegend:true,legend:{x:0,y:1.12,orientation:'h'},margin:{l:50,r:30,t:40,b:40}},{responsive:true});
+}
+
+// ====== CPK ANALYSIS ======
+function runCpk(){
+ const data=parseData(document.getElementById('cpkData').value);
+ if(data.length<5){alert('At least 5 data points required.');return}
+ const lsl=parseFloat(document.getElementById('cpkLSL').value);
+ const usl=parseFloat(document.getElementById('cpkUSL').value);
+ const target=parseFloat(document.getElementById('cpkTarget').value);
+ const m=mean(data),s=std(data),n=data.length;
+ const cp=(usl-lsl)/(6*s);
+ const cpk=Math.min((usl-m)/(3*s),(m-lsl)/(3*s));
+ const pp=(usl-lsl)/(6*std(data,0));
+ const ppk=Math.min((usl-m)/(3*std(data,0)),(m-lsl)/(3*std(data,0)));
+ const cpu=(usl-m)/(3*s),cpl=(m-lsl)/(3*s);
+ // Estimated PPM
+ const zU=(usl-m)/s,zL=(m-lsl)/s;
+ const sigmaLevel=Math.min(zU,zL);
+
+ G.context=`Process Capability Analysis:\nN=${n}, Mean=${m.toFixed(4)}, SD=${s.toFixed(4)}\nLSL=${lsl}, USL=${usl}, Target=${target}\nCp=${cp.toFixed(4)}, Cpk=${cpk.toFixed(4)}\nCPU=${cpu.toFixed(4)}, CPL=${cpl.toFixed(4)}\nPp=${pp.toFixed(4)}, Ppk=${ppk.toFixed(4)}\nSigma Level=${sigmaLevel.toFixed(2)}`;
+
+ const cpkClass=cpk>=1.33?'success':cpk>=1.0?'warning':'danger';
+ let html=`<div class="stats-grid c6 mt-16">
+  <div class="stat-card ${cpkClass}"><div class="label">Cpk</div><div class="value">${cpk.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">Cp</div><div class="value">${cp.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">CPU</div><div class="value">${cpu.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">CPL</div><div class="value">${cpl.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">Ppk</div><div class="value">${ppk.toFixed(3)}</div></div>
+  <div class="stat-card"><div class="label">Sigma Level</div><div class="value">${sigmaLevel.toFixed(1)}σ</div></div>
+ </div>`;
+
+ // Judgment
+ if(cpk>=1.33)html+=`<div class="result-box result-pass"><strong>PROCESS CAPABLE - Cpk = ${cpk.toFixed(3)} (>= 1.33)</strong>Process consistently meets specifications. Suitable for continued production.</div>`;
+ else if(cpk>=1.0)html+=`<div class="result-box result-warn"><strong>MARGINAL CAPABILITY - Cpk = ${cpk.toFixed(3)} (1.0 ~ 1.33)</strong>Process marginally capable. Improvement recommended. Enhanced monitoring required.</div>`;
+ else html+=`<div class="result-box result-fail"><strong>PROCESS NOT CAPABLE - Cpk = ${cpk.toFixed(3)} (< 1.0)</strong>Process cannot consistently meet specifications. Re-validation required per ICH Q8 / KP GMP Ch.4.</div>`;
+
+ document.getElementById('cpkResults').innerHTML=html;
+
+ // Capability plot
+ const xMin=Math.min(lsl,m-4.5*s),xMax=Math.max(usl,m+4.5*s);
+ const xVals=Array.from({length:300},(_,i)=>xMin+i*(xMax-xMin)/299);
+ const yVals=xVals.map(x=>normalPDF(x,m,s));
+ const maxY=Math.max(...yVals);
+ Plotly.newPlot('cpkPlot',[
+  {x:xVals,y:yVals,mode:'lines',fill:'tozeroy',fillcolor:'rgba(15,82,186,0.12)',line:{color:'#0f52ba',width:2.5},name:'Process'},
+  {x:data,y:data.map(()=>-maxY*0.04),mode:'markers',marker:{color:'#0f52ba',size:5,symbol:'line-ns-open'},name:'Data Points'}
+ ],{
+  font:{family:'IBM Plex Sans'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:450,
+  shapes:[
+   {type:'line',x0:lsl,x1:lsl,y0:-maxY*0.06,y1:maxY*1.1,line:{color:'#c41e3a',width:2.5}},
+   {type:'line',x0:usl,x1:usl,y0:-maxY*0.06,y1:maxY*1.1,line:{color:'#c41e3a',width:2.5}},
+   {type:'line',x0:target,x1:target,y0:0,y1:maxY*1.1,line:{color:'#0d7a3f',width:1.5,dash:'dash'}},
+   {type:'line',x0:m,x1:m,y0:0,y1:maxY*1.1,line:{color:'#0f52ba',width:1.5,dash:'dash'}},
+   {type:'rect',x0:lsl,x1:usl,y0:0,y1:maxY*1.1,fillcolor:'rgba(13,122,63,0.04)',line:{width:0}}
+  ],
+  annotations:[
+   {x:lsl,y:maxY*1.08,text:`LSL=${lsl}`,showarrow:false,font:{size:11,color:'#c41e3a',family:'IBM Plex Mono'}},
+   {x:usl,y:maxY*1.08,text:`USL=${usl}`,showarrow:false,font:{size:11,color:'#c41e3a',family:'IBM Plex Mono'}},
+   {x:m,y:maxY*0.85,text:`Cpk=${cpk.toFixed(3)}`,showarrow:true,arrowhead:0,ax:40,ay:-30,font:{size:13,color:'#0f52ba',family:'IBM Plex Mono'},bgcolor:'rgba(255,255,255,0.9)'}
+  ],
+  xaxis:{title:'Value',gridcolor:'#e5e7eb'},yaxis:{title:'Density',gridcolor:'#e5e7eb'},
+  margin:{l:50,r:30,t:30,b:40}
+ },{responsive:true});
+}
+
+// ====== REGRESSION ======
+function runRegression(){
+ const x=parseData(document.getElementById('regX').value);
+ const y=parseData(document.getElementById('regY').value);
+ const n=Math.min(x.length,y.length);
+ if(n<3){alert('At least 3 data pairs required.');return}
+ const xd=x.slice(0,n),yd=y.slice(0,n);
+ const mx=mean(xd),my=mean(yd);
+ const slope=xd.reduce((s,xi,i)=>s+(xi-mx)*(yd[i]-my),0)/xd.reduce((s,xi)=>s+(xi-mx)**2,0);
+ const intercept=my-slope*mx;
+ const yPred=xd.map(xi=>slope*xi+intercept);
+ const ssTot=yd.reduce((s,yi)=>s+(yi-my)**2,0);
+ const ssRes=yd.reduce((s,yi,i)=>s+(yi-yPred[i])**2,0);
+ const r2=1-ssRes/ssTot;
+ const r=Math.sqrt(r2)*(slope>=0?1:-1);
+ const se=Math.sqrt(ssRes/(n-2));
+
+ G.context=`Regression Analysis:\ny = ${slope.toFixed(4)}x + ${intercept.toFixed(4)}\nR2=${r2.toFixed(4)}, r=${r.toFixed(4)}, SE=${se.toFixed(4)}\nN=${n}`;
+
+ let html=`<div class="stats-grid c4 mt-16">
+  <div class="stat-card primary"><div class="label">R-squared</div><div class="value">${r2.toFixed(4)}</div></div>
+  <div class="stat-card"><div class="label">Correlation (r)</div><div class="value">${r.toFixed(4)}</div></div>
+  <div class="stat-card"><div class="label">Slope</div><div class="value">${slope.toFixed(4)}</div></div>
+  <div class="stat-card"><div class="label">Intercept</div><div class="value">${intercept.toFixed(4)}</div></div>
+ </div>
+ <div class="result-box result-info"><strong>Regression Equation: y = ${slope.toFixed(4)}x + ${intercept.toFixed(4)}</strong>
+ Standard Error = ${se.toFixed(4)} | N = ${n}</div>`;
+ document.getElementById('regResults').innerHTML=html;
+
+ Plotly.newPlot('regPlot',[
+  {x:xd,y:yd,mode:'markers',marker:{color:'#0f52ba',size:9},name:'Data'},
+  {x:xd,y:yPred,mode:'lines',line:{color:'#c41e3a',width:2},name:`Fit (R2=${r2.toFixed(3)})`}
+ ],{font:{family:'IBM Plex Sans'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:400,xaxis:{title:'X',gridcolor:'#e5e7eb'},yaxis:{title:'Y',gridcolor:'#e5e7eb'},margin:{l:50,r:30,t:30,b:40},showlegend:true},{responsive:true});
+}
+
+// ====== AI FUNCTIONS ======
+function saveKey(){
+ const k=document.getElementById('apiKey').value;
+ if(k){localStorage.setItem('claudeApiKey',k);document.getElementById('apiKey').style.borderColor='#0d7a3f';setTimeout(()=>document.getElementById('apiKey').style.borderColor='',1500)}
+}
+function getKey(){return document.getElementById('apiKey').value||localStorage.getItem('claudeApiKey')||''}
+
+function addMsg(text,type){
+ const d=document.getElementById('aiMessages');
+ const m=document.createElement('div');m.className=`ai-msg ${type}`;
+ if(type==='ai')m.innerHTML=`<div class="msg-label">AI Analysis</div>${formatAIResponse(text)}`;
+ else m.textContent=text;
+ d.appendChild(m);d.scrollTop=d.scrollHeight;
+ return m;
+}
+
+function addLoading(){
+ const d=document.getElementById('aiMessages');
+ const m=document.createElement('div');m.className='ai-msg ai';m.id='loadingMsg';
+ m.innerHTML=`<div class="msg-label">Analyzing</div><div class="ai-loading"><span></span><span></span><span></span></div>`;
+ d.appendChild(m);d.scrollTop=d.scrollHeight;
+}
+function removeLoading(){const el=document.getElementById('loadingMsg');if(el)el.remove()}
+
+function formatAIResponse(text){
+ // Convert markdown-like formatting to HTML
+ let html=text
+  .replace(/\*\*\[부적합[^\]]*\]\*\*/g,m=>`<span class="fail-tag">${m.replace(/\*\*/g,'')}</span>`)
+  .replace(/\*\*\[적합[^\]]*\]\*\*/g,m=>`<span class="pass-tag">${m.replace(/\*\*/g,'')}</span>`)
+  .replace(/\*\*\[주의[^\]]*\]\*\*/g,m=>`<span class="warn-tag">${m.replace(/\*\*/g,'')}</span>`)
+  .replace(/\[FAIL[^\]]*\]/g,m=>`<span class="fail-tag">${m}</span>`)
+  .replace(/\[PASS[^\]]*\]/g,m=>`<span class="pass-tag">${m}</span>`)
+  .replace(/\[WARNING[^\]]*\]/g,m=>`<span class="warn-tag">${m}</span>`)
+  .replace(/\[OOS[^\]]*\]/g,m=>`<span class="fail-tag">${m}</span>`)
+  .replace(/\*\*규정:\*\*([^\n]+)/g,'<div class="gmp-ref"><strong>Regulation:</strong>$1</div>')
+  .replace(/\*\*기준:\*\*([^\n]+)/g,'<div class="gmp-ref"><strong>Criteria:</strong>$1</div>')
+  .replace(/\*\*판정:\*\*([^\n]+)/g,(m,p1)=>`<div class="gmp-ref"><strong>Judgment:</strong>${p1.includes('부적합')?'<span class="fail-tag">'+p1.trim()+'</span>':p1}</div>`)
+  .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+  .replace(/\n/g,'<br>');
+ return html;
+}
+
+function buildSystemPrompt(){
+ const sampleInfo=G.sample?G.sampleSpecs[G.sample]:null;
+ return `You are a pharmaceutical quality control and validation statistics expert AI. You interpret statistical analysis results with strict adherence to GMP regulations and ICH guidelines.
+
+RESPONSE LANGUAGE: Always respond in Korean (한국어).
+
+SAMPLE TYPE: ${sampleInfo?sampleInfo.name:'Not specified'}
+${sampleInfo?`APPLICABLE REGULATIONS: ${sampleInfo.rules}\nSAMPLE DESCRIPTION: ${sampleInfo.desc}`:''}
+
+RESPONSE FORMAT REQUIREMENTS:
+When identifying non-conformance, use this exact structured format:
+
+**[부적합 사항 판정]** or **[적합 판정]** or **[주의 사항]**
+
+For each finding include:
+- **규정:** (applicable regulation with specific chapter/section)
+- **기준:** (acceptance criteria with numerical limits)
+- **측정값:** (actual measured value)
+- **판정:** 적합/부적합/주의
+- **사유:** (detailed reason)
+
+For non-conformance, additionally include:
+- **리스크:** OOS/OOT/Critical/Major/Minor classification
+- **필요 조치:** numbered action items per GMP requirements
+- **리스크 평가:** Severity/Probability/Detectability/RPN per ICH Q9
+
+REGULATORY REFERENCES TO APPLY:
+- Korean GMP (KGMP): Chapter 4 (Validation), Chapter 5 (Quality Control), Chapter 7 (Deviation Management)
+- ICH Q1A(R2): Stability Testing
+- ICH Q2(R1): Analytical Validation
+- ICH Q6A: Specifications
+- ICH Q8(R2): Pharmaceutical Development (QbD)
+- ICH Q9: Quality Risk Management
+- ICH Q10: Pharmaceutical Quality System
+- FDA Process Validation Guidance (2011)
+- Six Sigma: Cpk >= 1.33, DPMO calculations
+- SPC Nelson Rules for control charts
+
+SAMPLE-SPECIFIC INTERPRETATION:
+${G.sample==='api'?'- API: KP/USP/EP standards, Assay 98.0-102.0%, impurity limits, residual solvents':''}
+${G.sample==='finished'?'- Finished Product: Assay 95.0-105.0%, Content Uniformity AV<=15, Dissolution Q+5%, Disintegration':''}
+${G.sample==='inprocess'?'- In-Process: Process-specific limits, CPP monitoring, trend analysis for process drift':''}
+${G.sample==='stability'?'- Stability: ICH Q1A long-term/accelerated conditions, shelf-life prediction, degradation trends':''}
+${G.sample==='validation'?'- Validation: 3-batch consistency, Cpk>=1.33, process qualification, PPQ acceptance criteria':''}
+${G.sample==='cleaning'?'- Cleaning: MAC/MACO calculation, 10ppm/0.001 dose criteria, TOC limits, visual inspection':''}
+${G.sample==='method'?'- Method Validation: ICH Q2(R1) - Accuracy(Recovery 98-102%), Precision(RSD<=2%), LOD/LOQ, Linearity(R2>=0.999)':''}
+
+Always provide concrete, actionable GMP-compliant recommendations. Be thorough but concise. Use tables where appropriate.`;
+}
+
+async function callClaude(prompt){
+ const key=getKey();
+ if(!key){addMsg('Please enter your Claude API key in the header area.','ai');return null}
+ try{
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+   method:'POST',
+   headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+   body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,system:buildSystemPrompt(),messages:[{role:'user',content:prompt}]})
+  });
+  const data=await res.json();
+  if(data.content&&data.content[0])return data.content[0].text;
+  if(data.error)return`API Error: ${data.error.message}`;
+  return'Unexpected response format.';
+ }catch(e){return`Connection error: ${e.message}`}
+}
+
+async function requestAI(){
+ if(!G.context){alert('Run analysis first.');return}
+ addMsg('Interpret the analysis results with GMP compliance assessment','user');
+ addLoading();
+ const response=await callClaude(`Please interpret the following pharmaceutical statistical analysis results. Provide GMP compliance assessment, regulatory judgment, and recommended actions.\n\nANALYSIS DATA:\n${G.context}`);
+ removeLoading();
+ if(response)addMsg(response,'ai');
+}
+
+async function requestAIMultivar(){
+ if(!G.context){alert('Run analysis first.');return}
+ addMsg('Interpret multi-variable analysis','user');addLoading();
+ const r=await callClaude(`Interpret this multi-variable analysis for pharmaceutical QC:\n\n${G.context}`);
+ removeLoading();if(r)addMsg(r,'ai');
+}
+async function requestAITOST(){
+ if(!G.context){alert('Run TOST first.');return}
+ addMsg('Interpret TOST equivalence test','user');addLoading();
+ const r=await callClaude(`Interpret this TOST equivalence test result for pharmaceutical validation:\n\n${G.context}`);
+ removeLoading();if(r)addMsg(r,'ai');
+}
+async function requestAIAnova(){
+ if(!G.context){alert('Run ANOVA first.');return}
+ addMsg('Interpret ANOVA results','user');addLoading();
+ const r=await callClaude(`Interpret this ANOVA result for pharmaceutical batch comparison:\n\n${G.context}`);
+ removeLoading();if(r)addMsg(r,'ai');
+}
+async function requestAISPC(){
+ if(!G.context){alert('Run SPC first.');return}
+ addMsg('Interpret SPC control chart with Nelson Rules','user');addLoading();
+ const r=await callClaude(`Interpret this SPC control chart analysis including Nelson Rule violations for pharmaceutical process monitoring:\n\n${G.context}`);
+ removeLoading();if(r)addMsg(r,'ai');
+}
+async function requestAICpk(){
+ if(!G.context){alert('Run Cpk analysis first.');return}
+ addMsg('Interpret process capability analysis','user');addLoading();
+ const r=await callClaude(`Interpret this process capability analysis (Cp/Cpk) for pharmaceutical validation:\n\n${G.context}`);
+ removeLoading();if(r)addMsg(r,'ai');
+}
+async function requestAIRegression(){
+ if(!G.context){alert('Run regression first.');return}
+ addMsg('Interpret regression analysis','user');addLoading();
+ const r=await callClaude(`Interpret this regression analysis for pharmaceutical data (e.g., stability trend, linearity, calibration):\n\n${G.context}`);
+ removeLoading();if(r)addMsg(r,'ai');
+}
+
+async function sendChat(){
+ const input=document.getElementById('aiInput');
+ const msg=input.value.trim();if(!msg)return;
+ input.value='';
+ addMsg(msg,'user');addLoading();
+ const prompt=`User question: ${msg}\n\n${G.context?'Current analysis context:\n'+G.context:'No analysis has been run yet.'}`;
+ const r=await callClaude(prompt);
+ removeLoading();if(r)addMsg(r,'ai');
+}
+
+// Init
+window.onload=function(){
+ addVar();addVar();
+ const savedKey=localStorage.getItem('claudeApiKey');
+ if(savedKey)document.getElementById('apiKey').value=savedKey;
+};
+</script>
+</body>
+</html>
