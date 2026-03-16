@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDA - Exploratory Data Analysis</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#f4f5f7;--surface:#fff;--surface2:#f8f9fb;--surface3:#eef0f4;
+--border:#dfe2e8;--border-lt:#e8ebf0;
+--ink:#121520;--ink2:#3d4254;--ink3:#6e7489;--ink4:#9aa0b4;
+--blue:#2563eb;--blue-lt:#eff4ff;--blue-dk:#1d4ed8;
+--green:#0f8a4f;--green-lt:#edfcf2;--green-bg:#d1fae5;
+--amber:#b45309;--amber-lt:#fffbeb;--amber-bg:#fef3c7;
+--red:#c81e3a;--red-lt:#fff0f2;--red-bg:#fee2e8;
+--purple:#7c3aed;--purple-lt:#f5f0ff;
+--sidebar:#0e1525;--sidebar2:#162033;--sidebar3:#1e2a42;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.55}
+
+/* ── CUSTOM SCROLLBARS ── */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#c1c7d0;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#a0a8b4}
+.main::-webkit-scrollbar-thumb{background:#c1c7d0}
+.ai-msgs::-webkit-scrollbar{width:5px}
+.ai-msgs::-webkit-scrollbar-thumb{background:#374151;border-radius:3px}
+.ai-msgs::-webkit-scrollbar-thumb:hover{background:#4b5563}
+*{scrollbar-width:thin;scrollbar-color:#c1c7d0 transparent}
+.ai-msgs{scrollbar-color:#374151 transparent}
+
+.app{display:grid;grid-template-columns:1fr 400px;height:100vh;overflow:hidden}
+
+/* ── HEADER ── */
+.hdr{background:var(--sidebar);color:#fff;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hdr-left{display:flex;align-items:center;gap:14px}
+.hdr-logo{width:36px;height:36px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;letter-spacing:-0.5px}
+.hdr-title{font-size:17px;font-weight:700;letter-spacing:-0.4px}
+.hdr-sub{font-size:11px;color:var(--ink4);margin-top:1px}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.key-in{background:var(--sidebar2);border:1px solid var(--sidebar3);color:#cbd5e1;padding:7px 12px;border-radius:6px;font-size:11px;width:240px;font-family:'JetBrains Mono',monospace}
+.key-in::placeholder{color:#475569}
+.key-in:focus{outline:none;border-color:var(--blue)}
+.key-btn{background:var(--blue);color:#fff;border:none;padding:7px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif}
+
+/* ── TABS ── */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto}
+.tab{padding:11px 18px;font-size:11.5px;font-weight:600;color:var(--ink3);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:0.6px;white-space:nowrap;transition:.15s}
+.tab:hover{color:var(--ink);background:var(--surface2)}
+.tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* ── MAIN ── */
+.main{overflow-y:auto;display:flex;flex-direction:column}
+.content{flex:1;padding:22px 28px 40px}
+.pnl{display:none}.pnl.on{display:block}
+
+/* ── SECTION ── */
+.sec{background:var(--surface);border:1px solid var(--border-lt);border-radius:10px;padding:22px;margin-bottom:18px}
+.sec-hd{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:14px;padding-bottom:9px;border-bottom:1px solid var(--border-lt);display:flex;align-items:center;gap:8px}
+.tag{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:0.4px}
+.tag-blue{background:var(--blue-lt);color:var(--blue)}
+.tag-green{background:var(--green-lt);color:var(--green)}
+.tag-red{background:var(--red-lt);color:var(--red)}
+.tag-purple{background:var(--purple-lt);color:var(--purple)}
+.tag-amber{background:var(--amber-lt);color:var(--amber)}
+
+/* ── FORM ── */
+.row{display:grid;gap:14px;margin-bottom:14px}
+.r2{grid-template-columns:1fr 1fr}.r3{grid-template-columns:1fr 1fr 1fr}.r4{grid-template-columns:1fr 1fr 1fr 1fr}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fl{font-size:10.5px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:0.3px;display:flex;align-items:center;gap:4px}
+.fl .tip{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--surface3);color:var(--ink4);font-size:9px;cursor:help;font-weight:700;position:relative}
+.fl .tip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:6px 10px;border-radius:6px;font-size:10px;white-space:nowrap;z-index:999;font-weight:400;letter-spacing:0;text-transform:none;max-width:260px;white-space:normal;line-height:1.4}
+.fi,.fs,.ft{border:1px solid var(--border);border-radius:6px;padding:8px 11px;font-size:12.5px;font-family:'Outfit',sans-serif;color:var(--ink);background:var(--surface);transition:.15s}
+.ft{min-height:70px;resize:vertical;font-family:'JetBrains Mono',monospace;font-size:11.5px}
+.fi:focus,.fs:focus,.ft:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,0.08)}
+
+/* ── SAMPLE TYPE ── */
+.samples{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px;margin-bottom:14px}
+.smp{padding:9px 10px;border:2px solid var(--border-lt);border-radius:8px;cursor:pointer;text-align:center;font-size:11.5px;font-weight:500;background:var(--surface);transition:.15s}
+.smp:hover{border-color:var(--blue);background:var(--blue-lt)}
+.smp.on{border-color:var(--blue);background:var(--blue);color:#fff}
+.smp small{display:block;font-size:9.5px;opacity:.65;margin-top:1px}
+.smp.on small{opacity:.85}
+
+/* ── CHART CHECKS ── */
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:6px;margin-bottom:14px}
+.chk{display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--border-lt);border-radius:6px;cursor:pointer;font-size:11.5px;font-weight:500;transition:.15s}
+.chk:hover{border-color:var(--blue);background:var(--blue-lt)}
+.chk.on{border-color:var(--blue);background:var(--blue-lt)}
+.chk input{accent-color:var(--blue);width:13px;height:13px}
+
+/* ── BUTTONS ── */
+.btn{border:none;padding:9px 18px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:.12s}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:var(--blue-dk)}
+.btn-g{background:var(--green);color:#fff}.btn-g:hover{opacity:.9}
+.btn-o{background:var(--surface2);color:var(--ink2);border:1px solid var(--border)}.btn-o:hover{background:var(--surface3)}
+.btn-r{background:var(--red);color:#fff}
+.btn-s{padding:5px 11px;font-size:10.5px}
+.btns{display:flex;gap:7px;margin-top:14px;flex-wrap:wrap}
+
+/* ── SIGNAL BANNER ── */
+.banner{border-radius:8px;padding:14px 18px;margin:14px 0;display:flex;align-items:center;gap:12px;font-size:13px}
+.banner .icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0}
+.banner .txt strong{display:block;font-size:14px;margin-bottom:2px}
+.banner-pass{background:var(--green-bg);border:1px solid #86efac}.banner-pass .icon{background:#22c55e;color:#fff}
+.banner-fail{background:var(--red-bg);border:1px solid #fca5a5}.banner-fail .icon{background:#ef4444;color:#fff}
+.banner-warn{background:var(--amber-bg);border:1px solid #fcd34d}.banner-warn .icon{background:#f59e0b;color:#fff}
+
+/* ── STATS ── */
+.sg{display:grid;gap:10px;margin:12px 0}
+.sg3{grid-template-columns:repeat(3,1fr)}.sg4{grid-template-columns:repeat(4,1fr)}.sg5{grid-template-columns:repeat(5,1fr)}.sg6{grid-template-columns:repeat(6,1fr)}
+.sc{background:var(--surface2);border:1px solid var(--border-lt);border-radius:8px;padding:12px;text-align:center}
+.sc .lb{font-size:9.5px;font-weight:600;color:var(--ink4);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.sc .vl{font-size:18px;font-weight:700;color:var(--ink);font-family:'JetBrains Mono',monospace}
+.sc-p{background:var(--blue-lt);border-color:var(--blue)}.sc-p .vl{color:var(--blue)}
+.sc-g{background:var(--green-lt);border-color:var(--green)}.sc-g .vl{color:var(--green)}
+.sc-r{background:var(--red-lt);border-color:var(--red)}.sc-r .vl{color:var(--red)}
+.sc-a{background:var(--amber-lt);border-color:var(--amber)}.sc-a .vl{color:var(--amber)}
+
+/* ── TABLE ── */
+.tb{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}
+.tb th{background:var(--surface2);padding:9px 11px;text-align:left;font-weight:600;color:var(--ink3);border:1px solid var(--border-lt);font-size:10.5px;text-transform:uppercase;letter-spacing:.3px}
+.tb td{padding:8px 11px;border:1px solid var(--border-lt);font-family:'JetBrains Mono',monospace;font-size:11.5px}
+.tb tr:hover{background:var(--surface2)}
+
+/* ── CHARTS ── */
+.cg{display:grid;gap:14px;margin-top:14px}
+.cg2{grid-template-columns:1fr 1fr}.cg1{grid-template-columns:1fr}
+.cw{background:var(--surface);border:1px solid var(--border-lt);border-radius:8px;overflow:hidden}
+.cw-hd{padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border-lt);font-size:11px;font-weight:600;color:var(--ink2)}
+
+/* ── FILE UPLOAD ── */
+.upload{border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:.15s;background:var(--surface2)}
+.upload:hover{border-color:var(--blue);background:var(--blue-lt)}
+.upload.drag{border-color:var(--blue);background:var(--blue-lt)}
+.upload .u-title{font-size:13px;font-weight:600;color:var(--ink)}
+.upload .u-sub{font-size:11px;color:var(--ink4);margin-top:3px}
+
+/* ── GMP BOX ── */
+.gmp{background:var(--surface2);border:1px solid var(--border-lt);border-radius:8px;padding:14px;margin:10px 0}
+.gmp-fail{border-color:var(--red);background:var(--red-lt)}
+.gmp-pass{border-color:var(--green);background:var(--green-lt)}
+
+/* ── AI SIDEBAR ── */
+.side{background:var(--sidebar);display:flex;flex-direction:column;border-left:1px solid #1a2540;height:100vh;overflow:hidden}
+.side-hd{padding:16px 18px;border-bottom:1px solid #1a2540;flex-shrink:0}
+.side-hd h3{color:#fff;font-size:14px;font-weight:700}
+.side-hd p{color:#64748b;font-size:10.5px;margin-top:2px}
+.side-sample{padding:6px 10px;margin:0 18px;background:var(--sidebar2);border-radius:5px;font-size:10px;color:#94a3b8;display:none;flex-shrink:0}
+.side-sample.show{display:block}
+.ai-msgs{flex:1;overflow-y:auto;padding:14px;min-height:0}
+.ai-m{margin-bottom:10px;padding:11px 13px;border-radius:8px;font-size:12.5px;line-height:1.65;max-width:96%;word-break:break-word;overflow-wrap:break-word;overflow:hidden}
+.ai-m.user{background:#1e3a5f;color:#bfdbfe;margin-left:auto;border-bottom-right-radius:2px}
+.ai-m.ai{background:var(--sidebar2);color:#d1d5db;border-bottom-left-radius:2px}
+.ai-m .mlbl{font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.ai-m strong{color:#e2e8f0}
+.ai-m .ftag{display:inline-block;padding:1px 7px;border-radius:3px;font-size:10px;font-weight:700;margin:1px 0}
+.ai-m .ftag-pass{background:#059669;color:#fff}
+.ai-m .ftag-fail{background:#dc2626;color:#fff}
+.ai-m .ftag-warn{background:#d97706;color:#fff}
+.ai-m .gref{background:#111827;padding:7px 9px;border-radius:4px;border-left:3px solid #475569;margin:5px 0;font-size:10.5px;color:#94a3b8}
+.ai-m table{width:100%;border-collapse:collapse;margin:6px 0;font-size:10.5px;table-layout:fixed}
+.ai-m th,.ai-m td{padding:5px 7px;border:1px solid #374151;text-align:left}
+.ai-m th{background:#111827;color:#94a3b8;font-weight:600}
+.ai-m pre{font-family:'JetBrains Mono';font-size:10px;background:#111827;padding:8px;border-radius:4px;white-space:pre-wrap;margin:5px 0}
+.ai-m ul,.ai-m ol{padding-left:16px;margin:4px 0}
+.ai-m li{margin-bottom:2px}
+.ai-m h1,.ai-m h2,.ai-m h3,.ai-m h4{color:#e2e8f0;margin:8px 0 4px;font-size:13px}
+.ai-load{display:flex;gap:4px;padding:6px 0}
+.ai-load span{width:5px;height:5px;background:#64748b;border-radius:50%;animation:bnc .6s infinite alternate}
+.ai-load span:nth-child(2){animation-delay:.15s}
+.ai-load span:nth-child(3){animation-delay:.3s}
+@keyframes bnc{to{opacity:.3;transform:translateY(-3px)}}
+.ai-in{padding:10px 14px;border-top:1px solid #1a2540;display:flex;gap:7px;flex-shrink:0}
+.ai-inp{flex:1;background:var(--sidebar2);border:1px solid var(--sidebar3);color:#e2e8f0;padding:9px 12px;border-radius:7px;font-size:12px;font-family:'Outfit'}
+.ai-inp:focus{outline:none;border-color:var(--blue)}
+.ai-inp::placeholder{color:#475569}
+.ai-snd{background:var(--blue);color:#fff;border:none;padding:9px 14px;border-radius:7px;font-weight:600;cursor:pointer;font-size:12px;font-family:'Outfit'}
+
+/* ── VARS ── */
+.vi{background:var(--surface2);border:1px solid var(--border-lt);border-radius:6px;padding:12px;margin-bottom:7px}
+.vi-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+
+/* ── EXPORT BAR ── */
+.export-bar{background:var(--surface);border:1px solid var(--border-lt);border-radius:8px;padding:12px 16px;margin:14px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.export-bar .ex-label{font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px;margin-right:4px}
+.ex-btn{display:flex;align-items:center;gap:5px;padding:7px 14px;border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--ink2);font-family:'Outfit',sans-serif;transition:.12s}
+.ex-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt)}
+.ex-btn .ex-icon{width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff}
+.ex-pdf .ex-icon{background:#dc2626}
+.ex-word .ex-icon{background:#2563eb}
+.ex-excel .ex-icon{background:#0f8a4f}
+.ex-ppt .ex-icon{background:#ea580c}
+.ex-ai .ex-icon{background:#7c3aed}
+.export-bar .ex-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+
+/* ── RESULT SCROLL AREA ── */
+.result-scroll{max-height:70vh;overflow-y:auto;overflow-x:hidden;padding-right:4px;margin-top:8px;scroll-behavior:smooth}
+.result-scroll::-webkit-scrollbar{width:6px}
+.result-scroll::-webkit-scrollbar-thumb{background:#c1c7d0;border-radius:3px}
+.result-scroll::-webkit-scrollbar-thumb:hover{background:#a0a8b4}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1200px){.app{grid-template-columns:1fr;height:auto;overflow:visible}.side{height:450px;overflow:hidden}}
+@media(max-width:768px){.r2,.r3,.r4{grid-template-columns:1fr}.sg4,.sg5,.sg6{grid-template-columns:repeat(2,1fr)}.cg2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="main">
+<!-- HEADER -->
+<div class="hdr">
+<div class="hdr-left">
+<div class="hdr-logo">EDA</div>
+<div><div class="hdr-title">Exploratory Data Analysis</div><div class="hdr-sub">Pharmaceutical Quality Control &amp; GMP Validation Platform</div></div>
+</div>
+<div class="hdr-right">
+<input type="password" class="key-in" id="apiKey" placeholder="Claude API Key">
+<button class="key-btn" onclick="saveKey()">Save</button>
+</div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+<button class="tab on" onclick="openTab('t-main',this)">Data Analysis</button>
+<button class="tab" onclick="openTab('t-multi',this)">Multi-Variable</button>
+<button class="tab" onclick="openTab('t-tost',this)">TOST</button>
+<button class="tab" onclick="openTab('t-anova',this)">ANOVA</button>
+<button class="tab" onclick="openTab('t-spc',this)">SPC Control</button>
+<button class="tab" onclick="openTab('t-cpk',this)">Cpk / Capability</button>
+<button class="tab" onclick="openTab('t-reg',this)">Regression</button>
+</div>
+
+<div class="content">
+
+<!-- ═══════ MAIN DATA ANALYSIS ═══════ -->
+<div id="t-main" class="pnl on">
+
+<!-- Sample Selection -->
+<div class="sec">
+<div class="sec-hd">Sample Type Selection <span class="tag tag-blue">Required</span></div>
+<div class="samples" id="smpTypes">
+<div class="smp" data-t="api" onclick="pickSmp(this)">API<small>원료의약품</small></div>
+<div class="smp" data-t="finished" onclick="pickSmp(this)">Finished Product<small>완제의약품</small></div>
+<div class="smp" data-t="inprocess" onclick="pickSmp(this)">In-Process<small>공정 중 시료</small></div>
+<div class="smp" data-t="stability" onclick="pickSmp(this)">Stability<small>안정성 시험</small></div>
+<div class="smp" data-t="validation" onclick="pickSmp(this)">Validation<small>밸리데이션</small></div>
+<div class="smp" data-t="cleaning" onclick="pickSmp(this)">Cleaning<small>세척 밸리데이션</small></div>
+<div class="smp" data-t="method" onclick="pickSmp(this)">Method Val.<small>분석법 밸리데이션</small></div>
+</div>
+<div id="smpInfo" class="banner banner-pass" style="display:none"></div>
+</div>
+
+<!-- Data Input -->
+<div class="sec">
+<div class="sec-hd">Data Input</div>
+<div class="upload" id="upZone" onclick="document.getElementById('fileIn').click()">
+<div class="u-title">Click or drag file here</div>
+<div class="u-sub">Excel (.xlsx/.xls) / CSV supported</div>
+<input type="file" id="fileIn" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(event)">
+</div>
+<div style="margin-top:10px">
+<div class="fg"><label class="fl">Manual Data Input (comma-separated)</label>
+<textarea class="ft" id="manData" placeholder="99.5, 99.8, 100.1, 99.3, 100.5, 99.7, 100.2, 99.9, 100.3, 99.6">99.5, 99.8, 100.1, 99.3, 100.5, 99.7, 100.2, 99.9, 100.3, 99.6</textarea></div>
+</div>
+<div class="row r3" style="margin-top:10px">
+<div class="fg"><label class="fl">Dataset Name</label><input class="fi" id="dName" value="Sample Data"></div>
+<div class="fg"><label class="fl">LSL <span class="tip" data-tip="Lower Specification Limit: 규격 하한값">?</span></label><input class="fi" type="number" id="specL" value="95.0" step="0.1"></div>
+<div class="fg"><label class="fl">USL <span class="tip" data-tip="Upper Specification Limit: 규격 상한값">?</span></label><input class="fi" type="number" id="specU" value="105.0" step="0.1"></div>
+</div>
+</div>
+
+<!-- Chart Selection -->
+<div class="sec">
+<div class="sec-hd">Chart Selection <span class="tag tag-purple">Multi-Select</span></div>
+<div class="checks" id="chkArea">
+<label class="chk on"><input type="checkbox" value="histogram" checked> Histogram</label>
+<label class="chk"><input type="checkbox" value="boxplot"> Box Plot</label>
+<label class="chk"><input type="checkbox" value="normal"> Normal Distribution</label>
+<label class="chk"><input type="checkbox" value="scatter"> Scatter Plot</label>
+<label class="chk"><input type="checkbox" value="control"> Control Chart</label>
+<label class="chk"><input type="checkbox" value="capability"> Capability (Cpk)</label>
+<label class="chk"><input type="checkbox" value="pareto"> Pareto Chart</label>
+<label class="chk"><input type="checkbox" value="trend"> Trend Analysis</label>
+</div>
+<div class="btns">
+<button class="btn btn-p" onclick="runMain()">Run Analysis</button>
+<button class="btn btn-g" onclick="aiMain()">AI Interpretation</button>
+<button class="btn btn-o" onclick="clrMain()">Clear</button>
+</div>
+</div>
+
+<!-- Export Bar -->
+<div class="export-bar" id="exportBar" style="display:none">
+<span class="ex-label">결과 다운로드</span>
+<button class="ex-btn ex-pdf" onclick="exportPDF()"><span class="ex-icon">PDF</span> PDF 저장</button>
+<button class="ex-btn ex-word" onclick="exportWord()"><span class="ex-icon">W</span> Word 저장</button>
+<button class="ex-btn ex-excel" onclick="exportExcel()"><span class="ex-icon">X</span> Excel 저장</button>
+<button class="ex-btn ex-ppt" onclick="exportPPT()"><span class="ex-icon">P</span> PPT 저장</button>
+</div>
+
+<!-- Scrollable Results -->
+<div class="result-scroll" id="resultScroll">
+<div id="mainBanner"></div>
+<div id="mainStats"></div>
+<div id="mainCharts"></div>
+<div id="mainGMP"></div>
+</div>
+</div>
+
+<!-- ═══════ MULTI-VARIABLE ═══════ -->
+<div id="t-multi" class="pnl">
+<div class="sec">
+<div class="sec-hd">Multi-Variable Analysis</div>
+<div id="varList"></div>
+<div class="btns" style="margin-bottom:14px">
+<button class="btn btn-o btn-s" onclick="addV()">+ Add Variable</button>
+<button class="btn btn-o btn-s" onclick="rmV()">- Remove Last</button>
+</div>
+<div class="row r2">
+<div class="fg"><label class="fl">Analysis Type</label>
+<select class="fs" id="mvType"><option value="compare">Compare Distributions</option><option value="correlation">Correlation Analysis</option><option value="trend">Trend Analysis</option></select></div>
+</div>
+<div class="btns">
+<button class="btn btn-p" onclick="runMV()">Run Analysis</button>
+<button class="btn btn-g" onclick="aiMV()">AI Interpretation</button>
+</div>
+<div id="mvRes"></div><div id="mvPlot" style="margin-top:14px"></div>
+</div>
+</div>
+
+<!-- ═══════ TOST ═══════ -->
+<div id="t-tost" class="pnl">
+<div class="sec">
+<div class="sec-hd">TOST Equivalence Testing</div>
+<div class="row r2">
+<div class="fg"><label class="fl">Reference Data</label><textarea class="ft" id="tRef">99.5, 99.8, 100.1, 99.3, 100.2, 99.7, 100.0, 99.6</textarea></div>
+<div class="fg"><label class="fl">Test Data</label><textarea class="ft" id="tTest">99.7, 100.0, 99.9, 100.1, 99.8, 100.3, 99.5, 99.9</textarea></div>
+</div>
+<div class="row r3">
+<div class="fg"><label class="fl">Equivalence Margin (%)</label><input class="fi" type="number" id="tMarg" value="2.0" step="0.1"></div>
+<div class="fg"><label class="fl">Confidence Level</label><select class="fs" id="tConf"><option value="0.90">90%</option><option value="0.95" selected>95%</option></select></div>
+<div class="fg"><label class="fl">Variance</label><select class="fs" id="tVar"><option value="pooled">Pooled (Equal)</option><option value="welch">Welch (Unequal)</option></select></div>
+</div>
+<div class="btns">
+<button class="btn btn-p" onclick="runTOST()">Run TOST</button>
+<button class="btn btn-g" onclick="aiTOST()">AI Interpretation</button>
+</div>
+<div id="tRes"></div><div id="tPlot" style="margin-top:14px"></div>
+</div>
+</div>
+
+<!-- ═══════ ANOVA ═══════ -->
+<div id="t-anova" class="pnl">
+<div class="sec">
+<div class="sec-hd">One-Way ANOVA + Tukey HSD</div>
+<div id="avGroups">
+<div class="fg" style="margin-bottom:10px"><label class="fl">Group A</label><textarea class="ft av-g">98.5, 99.2, 98.8, 99.1, 98.7</textarea></div>
+<div class="fg" style="margin-bottom:10px"><label class="fl">Group B</label><textarea class="ft av-g">99.8, 100.2, 99.5, 100.0, 99.7</textarea></div>
+<div class="fg" style="margin-bottom:10px"><label class="fl">Group C</label><textarea class="ft av-g">100.5, 101.0, 100.8, 100.3, 100.6</textarea></div>
+</div>
+<div class="btns">
+<button class="btn btn-o btn-s" onclick="addAG()">+ Add Group</button>
+<button class="btn btn-p" onclick="runAV()">Run ANOVA</button>
+<button class="btn btn-g" onclick="aiAV()">AI Interpretation</button>
+</div>
+<div id="avRes"></div><div id="avPlot" style="margin-top:14px"></div>
+</div>
+</div>
+
+<!-- ═══════ SPC ═══════ -->
+<div id="t-spc" class="pnl">
+<div class="sec">
+<div class="sec-hd">SPC Control Chart <span class="tag tag-green">Nelson Rules (8)</span></div>
+<div class="fg" style="margin-bottom:10px"><label class="fl">Process Data (time-series)</label>
+<textarea class="ft" id="spcD">99.5,99.8,100.1,99.3,100.5,99.7,100.2,99.9,100.3,99.6,100.0,99.4,100.1,99.8,100.4,99.2,99.9,100.0,99.7,100.2</textarea></div>
+<div class="row r3">
+<div class="fg"><label class="fl">Target</label><input class="fi" type="number" id="spcT" value="100" step="0.1"></div>
+<div class="fg"><label class="fl">Sigma Multiplier</label><input class="fi" type="number" id="spcSig" value="3" step="0.5"></div>
+<div class="fg"><label class="fl">Chart Type</label><select class="fs" id="spcTp"><option value="imr">I-MR Chart</option><option value="i">Individuals Only</option></select></div>
+</div>
+<div class="btns">
+<button class="btn btn-p" onclick="runSPC()">Run SPC</button>
+<button class="btn btn-g" onclick="aiSPC()">AI Interpretation</button>
+</div>
+<div id="spcRes"></div><div id="spcPlot" style="margin-top:14px"></div><div id="mrPlot" style="margin-top:14px"></div>
+</div>
+</div>
+
+<!-- ═══════ CPK ═══════ -->
+<div id="t-cpk" class="pnl">
+<div class="sec">
+<div class="sec-hd">Process Capability Analysis <span class="tag tag-blue">Cp/Cpk/Pp/Ppk</span></div>
+<div class="fg" style="margin-bottom:10px"><label class="fl">Process Data</label>
+<textarea class="ft" id="cpkD">99.5,99.8,100.1,99.3,100.5,99.7,100.2,99.9,100.3,99.6,100.0,99.4,100.1,99.8,100.4,99.2,99.9,100.0,99.7,100.2</textarea></div>
+<div class="row r3">
+<div class="fg"><label class="fl">LSL</label><input class="fi" type="number" id="cpkL" value="95.0" step="0.1"></div>
+<div class="fg"><label class="fl">USL</label><input class="fi" type="number" id="cpkU" value="105.0" step="0.1"></div>
+<div class="fg"><label class="fl">Target</label><input class="fi" type="number" id="cpkT" value="100" step="0.1"></div>
+</div>
+<div class="btns">
+<button class="btn btn-p" onclick="runCPK()">Calculate</button>
+<button class="btn btn-g" onclick="aiCPK()">AI Interpretation</button>
+</div>
+<div id="cpkRes"></div><div id="cpkPlot" style="margin-top:14px"></div>
+</div>
+</div>
+
+<!-- ═══════ REGRESSION ═══════ -->
+<div id="t-reg" class="pnl">
+<div class="sec">
+<div class="sec-hd">Regression Analysis</div>
+<div class="row r2">
+<div class="fg"><label class="fl">X (Independent)</label><textarea class="ft" id="regX">1,2,3,4,5,6,7,8,9,10</textarea></div>
+<div class="fg"><label class="fl">Y (Dependent)</label><textarea class="ft" id="regY">99.2,99.5,99.8,100.1,100.0,100.3,100.5,100.2,100.8,100.6</textarea></div>
+</div>
+<div class="btns">
+<button class="btn btn-p" onclick="runReg()">Run Regression</button>
+<button class="btn btn-g" onclick="aiReg()">AI Interpretation</button>
+</div>
+<div id="regRes"></div><div id="regPlot" style="margin-top:14px"></div>
+</div>
+</div>
+
+</div><!-- content -->
+</div><!-- main -->
+
+<!-- ═══════ AI SIDEBAR ═══════ -->
+<div class="side">
+<div class="side-hd">
+<h3>AI Interpretation</h3>
+<p>Claude API &mdash; GMP/ICH Compliance Analysis</p>
+</div>
+<div class="side-sample" id="sideSmp"></div>
+<div class="ai-msgs" id="aiMsgs">
+<div class="ai-m ai"><div class="mlbl">System</div>
+Exploratory Data Analysis AI Assistant에 오신 것을 환영합니다.<br><br>
+<strong>사용 방법:</strong><br>
+1. Sample Type을 선택하세요<br>
+2. 데이터를 입력하고 분석을 실행하세요<br>
+3. "AI Interpretation" 버튼으로 GMP 규정 기반 해석을 받으세요<br><br>
+비전문가도 이해할 수 있는 3단계 해석을 제공합니다.
+</div>
+</div>
+<div class="ai-in">
+<input class="ai-inp" id="aiInp" placeholder="분석 결과에 대해 질문하세요..." onkeydown="if(event.key==='Enter')chatSend()">
+<button class="ai-snd" onclick="chatSend()">Send</button>
+</div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  GLOBALS
+// ═══════════════════════════════════════════
+const S={
+ smp:null,ctx:'',vc:0,agc:3,hist:[],
+ specs:{
+  api:{nm:'API (원료의약품)',l:98,u:102,r:'KP/USP/EP',d:'Assay 98.0~102.0%, 불순물 한도 약전 기준'},
+  finished:{nm:'Finished Product (완제의약품)',l:95,u:105,r:'KP GMP 제5장 / ICH Q6A',d:'함량 95.0~105.0%, 용출 Q+5%, 함량균일성 AV≤15'},
+  inprocess:{nm:'In-Process (공정 중 시료)',l:null,u:null,r:'공정관리기준',d:'공정별 CPP 관리한계, 추세 모니터링'},
+  stability:{nm:'Stability (안정성 시험)',l:95,u:105,r:'ICH Q1A(R2)',d:'장기 25°C/60%RH, 가속 40°C/75%RH, 유효기한 설정'},
+  validation:{nm:'Validation (밸리데이션)',l:95,u:105,r:'ICH Q8 QbD / KP GMP 제4장',d:'3 Batch 일관성, Cpk ≥ 1.33, 공정적격성'},
+  cleaning:{nm:'Cleaning (세척 밸리데이션)',l:0,u:null,r:'PDE/ADE 기반',d:'MAC/MACO 계산, 10ppm/0.001dose, TOC 한도'},
+  method:{nm:'Method Val. (분석법 밸리데이션)',l:null,u:null,r:'ICH Q2(R1)',d:'정확성(회수율98~102%), 정밀성(RSD≤2%), 직선성(R²≥0.999)'}
+ }
+};
+
+// ═══════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════
+const P=s=>s.split(/[,\s]+/).map(Number).filter(x=>!isNaN(x));
+const M=a=>a.reduce((s,v)=>s+v,0)/a.length;
+const SD=(a,d=1)=>{const m=M(a);return Math.sqrt(a.reduce((s,v)=>s+(v-m)**2,0)/(a.length-d))};
+const Med=a=>{const s=[...a].sort((x,y)=>x-y),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2};
+const Skew=a=>{const m=M(a),s=SD(a),n=a.length;return(n/((n-1)*(n-2)))*a.reduce((r,v)=>r+((v-m)/s)**3,0)};
+const Kurt=a=>{const m=M(a),s=SD(a),n=a.length;return((n*(n+1))/((n-1)*(n-2)*(n-3)))*a.reduce((r,v)=>r+((v-m)/s)**4,0)-3*(n-1)**2/((n-2)*(n-3))};
+const NPDF=(x,m,s)=>(1/(s*Math.sqrt(2*Math.PI)))*Math.exp(-0.5*((x-m)/s)**2);
+const NCDF=x=>{const t=1/(1+0.2316419*Math.abs(x)),d=0.3989423*Math.exp(-x*x/2),p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return x>0?1-p:p};
+function tInv(p,df){if(df<=0||p<=0||p>=1)return NaN;const a=p<.5?p:1-p,t0=Math.sqrt(-2*Math.log(a)),c0=2.515517,c1=.802853,c2=.010328,d1=1.432788,d2=.189269,d3=.001308;let t=t0-(c0+c1*t0+c2*t0*t0)/(1+d1*t0+d2*t0*t0+d3*t0*t0*t0);t+=((t**3+t)/(4*df))+((5*t**5+16*t**3+3*t)/(96*df**2));return p<.5?-t:t}
+function fInv(p,d1,d2){const a=2/(9*d1),b=2/(9*d2),z=tInv(p,1e8),n=Math.pow(1-b+z*Math.sqrt(b),3),dn=Math.pow(Math.max(.001,1-a-z*Math.sqrt(a)),3);return Math.max(0,n/dn)}
+function qCrit(al,k,df){return-tInv(al/(k*(k-1)/2),df)*Math.sqrt(2)}
+
+// ═══════════════════════════════════════════
+//  TAB / SAMPLE
+// ═══════════════════════════════════════════
+function openTab(id,btn){document.querySelectorAll('.pnl').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));document.getElementById(id).classList.add('on');btn.classList.add('on')}
+function pickSmp(el){
+ document.querySelectorAll('.smp').forEach(s=>s.classList.remove('on'));el.classList.add('on');
+ S.smp=el.dataset.t;const sp=S.specs[S.smp];
+ const info=document.getElementById('smpInfo');info.style.display='flex';
+ info.innerHTML=`<div class="icon" style="font-size:14px;width:28px;height:28px">i</div><div class="txt"><strong>${sp.nm}</strong><br>${sp.d}<br><span style="font-size:11px;color:var(--ink3)">적용 규정: ${sp.r}</span></div>`;
+ if(sp.l!==null)document.getElementById('specL').value=sp.l;
+ if(sp.u!==null)document.getElementById('specU').value=sp.u;
+ const ss=document.getElementById('sideSmp');ss.classList.add('show');ss.textContent=`Sample: ${sp.nm}`;
+}
+
+// ═══════════════════════════════════════════
+//  FILE UPLOAD
+// ═══════════════════════════════════════════
+const uz=document.getElementById('upZone');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('drag')});
+uz.addEventListener('dragleave',()=>uz.classList.remove('drag'));
+uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('drag');if(e.dataTransfer.files[0])procFile(e.dataTransfer.files[0])});
+function handleFile(e){if(e.target.files[0])procFile(e.target.files[0])}
+function procFile(f){
+ const ext=f.name.split('.').pop().toLowerCase();
+ if(ext==='csv'){Papa.parse(f,{complete:r=>{const n=r.data.flat().map(Number).filter(x=>!isNaN(x));document.getElementById('manData').value=n.join(', ');document.getElementById('dName').value=f.name.replace(/\.[^.]+$/,'')}})
+ }else{const rd=new FileReader();rd.onload=e=>{const wb=XLSX.read(e.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],j=XLSX.utils.sheet_to_json(ws,{header:1}),n=j.flat().map(Number).filter(x=>!isNaN(x));document.getElementById('manData').value=n.join(', ');document.getElementById('dName').value=f.name.replace(/\.[^.]+$/,'')};rd.readAsArrayBuffer(f)}
+}
+
+// checkbox styling
+document.querySelectorAll('.chk input').forEach(cb=>{cb.addEventListener('change',function(){this.closest('.chk').classList.toggle('on',this.checked)});if(cb.checked)cb.closest('.chk').classList.add('on')});
+
+// ═══════════════════════════════════════════
+//  MAIN ANALYSIS
+// ═══════════════════════════════════════════
+function getChks(){return[...document.querySelectorAll('#chkArea input:checked')].map(c=>c.value)}
+function clrMain(){['mainBanner','mainStats','mainCharts','mainGMP'].forEach(id=>document.getElementById(id).innerHTML='');document.getElementById('exportBar').style.display='none'}
+
+function runMain(){
+ const data=P(document.getElementById('manData').value);
+ if(data.length<2)return alert('2개 이상 데이터가 필요합니다.');
+ const charts=getChks();if(!charts.length)return alert('차트를 1개 이상 선택하세요.');
+ const nm=document.getElementById('dName').value,lsl=+document.getElementById('specL').value,usl=+document.getElementById('specU').value;
+ if(lsl>=usl)return alert('LSL은 USL보다 작아야 합니다.');
+ const n=data.length,m=M(data),s=SD(data),mn=Math.min(...data),mx=Math.max(...data),med=Med(data);
+ const cp=(usl-lsl)/(6*s),cpk=Math.min((usl-m)/(3*s),(m-lsl)/(3*s)),oos=data.filter(v=>v<lsl||v>usl).length;
+ const rsd=(s/m)*100,sk=n>3?Skew(data):0,kt=n>4?Kurt(data):0;
+
+ // Banner
+ let bClass,bIcon,bTxt;
+ if(oos>0){bClass='banner-fail';bIcon='F';bTxt=`<strong>부적합 (FAIL) — ${oos}건 규격 이탈</strong>OOS 값 발견. 즉시 조사 필요 (KP GMP 제7장 일탈관리)`}
+ else if(cpk<1.0){bClass='banner-fail';bIcon='!';bTxt=`<strong>부적합 — Cpk ${cpk.toFixed(3)} (기준 미달)</strong>공정능력 부족. 공정 개선 및 재밸리데이션 필요`}
+ else if(cpk<1.33){bClass='banner-warn';bIcon='!';bTxt=`<strong>주의 — Cpk ${cpk.toFixed(3)} (경계)</strong>공정능력이 경계 수준. 모니터링 강화 필요`}
+ else{bClass='banner-pass';bIcon='P';bTxt=`<strong>적합 (PASS)</strong>모든 값이 규격 이내, 공정능력 양호 (Cpk=${cpk.toFixed(3)})`}
+ document.getElementById('mainBanner').innerHTML=`<div class="banner ${bClass}"><div class="icon">${bIcon}</div><div class="txt">${bTxt}</div></div>`;
+
+ // Stats
+ let h=`<div class="sec"><div class="sec-hd">Descriptive Statistics — ${nm} <span class="tag ${oos>0?'tag-red':'tag-green'}">${oos>0?oos+' OOS':'ALL PASS'}</span></div>
+ <div class="sg sg6">
+  <div class="sc"><div class="lb">N</div><div class="vl">${n}</div></div>
+  <div class="sc sc-p"><div class="lb">Mean <span class="tip" data-tip="평균값: 전체 데이터의 산술 평균">?</span></div><div class="vl">${m.toFixed(3)}</div></div>
+  <div class="sc"><div class="lb">Std Dev <span class="tip" data-tip="표준편차: 데이터가 평균에서 얼마나 퍼져있는지 나타내는 지표. 작을수록 균일">?</span></div><div class="vl">${s.toFixed(4)}</div></div>
+  <div class="sc"><div class="lb">RSD% <span class="tip" data-tip="상대표준편차: (SD/Mean)×100. 정밀성 평가 지표. 2% 이하가 일반적 기준">?</span></div><div class="vl">${rsd.toFixed(2)}</div></div>
+  <div class="sc ${cpk>=1.33?'sc-g':cpk>=1?'sc-a':'sc-r'}"><div class="lb">Cpk <span class="tip" data-tip="공정능력지수: 공정이 규격 내에서 얼마나 안정적인지. 1.33↑ 적합, 1.0↓ 부적합">?</span></div><div class="vl">${cpk.toFixed(3)}</div></div>
+  <div class="sc ${oos?'sc-r':'sc-g'}"><div class="lb">OOS <span class="tip" data-tip="Out of Specification: 규격 범위(LSL~USL)를 벗어난 데이터 수">?</span></div><div class="vl">${oos}</div></div>
+ </div>
+ <div class="sg sg6">
+  <div class="sc"><div class="lb">Median</div><div class="vl">${med.toFixed(3)}</div></div>
+  <div class="sc"><div class="lb">Min</div><div class="vl">${mn.toFixed(3)}</div></div>
+  <div class="sc"><div class="lb">Max</div><div class="vl">${mx.toFixed(3)}</div></div>
+  <div class="sc"><div class="lb">Range</div><div class="vl">${(mx-mn).toFixed(3)}</div></div>
+  <div class="sc"><div class="lb">Skewness <span class="tip" data-tip="왜도: 분포의 비대칭 정도. 0에 가까울수록 정규분포에 가까움">?</span></div><div class="vl">${sk.toFixed(3)}</div></div>
+  <div class="sc"><div class="lb">Kurtosis <span class="tip" data-tip="첨도: 분포의 뾰족한 정도. 0에 가까울수록 정규분포에 가까움">?</span></div><div class="vl">${kt.toFixed(3)}</div></div>
+ </div></div>`;
+ document.getElementById('mainStats').innerHTML=h;
+
+ // Context for AI
+ S.ctx=`Dataset: ${nm}\nSample: ${S.smp?S.specs[S.smp].nm:'Not selected'}\n${S.smp?'Regulations: '+S.specs[S.smp].r:''}\nN=${n}, Mean=${m.toFixed(4)}, SD=${s.toFixed(4)}, Median=${med.toFixed(3)}\nMin=${mn.toFixed(3)}, Max=${mx.toFixed(3)}, Range=${(mx-mn).toFixed(3)}, RSD=${rsd.toFixed(2)}%\nLSL=${lsl}, USL=${usl}\nCp=${cp.toFixed(4)}, Cpk=${cpk.toFixed(4)}\nOOS=${oos}${oos?', OOS values: '+data.filter(v=>v<lsl||v>usl).map(v=>v.toFixed(3)).join(', '):''}\nSkewness=${sk.toFixed(3)}, Kurtosis=${kt.toFixed(3)}`;
+
+ // Charts Grid
+ const gc=charts.length===1?'cg1':'cg2';
+ let ch=`<div class="cg ${gc}">`;
+ const cLbl={histogram:'Histogram',boxplot:'Box Plot',normal:'Normal Distribution',scatter:'Scatter Plot',control:'Control Chart',capability:'Capability (Cpk)',pareto:'Pareto Chart',trend:'Trend Analysis'};
+ charts.forEach(c=>{ch+=`<div class="cw"><div class="cw-hd">${cLbl[c]||c}</div><div id="mc_${c}" style="height:360px"></div></div>`});
+ ch+=`</div>`;document.getElementById('mainCharts').innerHTML=ch;
+
+ const C={m:'#2563eb',r:'#c81e3a',g:'#0f8a4f',o:'#b45309',fl:'rgba(37,99,235,0.12)',gd:'#e8ebf0'};
+ const BL={font:{family:'Outfit'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',margin:{l:48,r:28,t:28,b:38},xaxis:{gridcolor:C.gd},yaxis:{gridcolor:C.gd}};
+
+ charts.forEach(c=>{
+  switch(c){
+   case 'histogram':Plotly.newPlot('mc_histogram',[{x:data,type:'histogram',marker:{color:C.m,line:{color:'#1d4ed8',width:1}},opacity:.85}],{...BL,xaxis:{...BL.xaxis,title:'Value'},yaxis:{...BL.yaxis,title:'Freq'}},{responsive:true});break;
+   case 'boxplot':{const sh=[{type:'line',y0:lsl,y1:lsl,x0:-.5,x1:.5,line:{color:C.r,width:2,dash:'dash'}},{type:'line',y0:usl,y1:usl,x0:-.5,x1:.5,line:{color:C.r,width:2,dash:'dash'}}];Plotly.newPlot('mc_boxplot',[{y:data,type:'box',boxmean:'sd',marker:{color:C.m},line:{color:C.m},fillcolor:C.fl,name:nm}],{...BL,shapes:sh},{responsive:true});break}
+   case 'normal':{const xMn=m-4*s,xMx=m+4*s,xV=Array.from({length:200},(_,i)=>xMn+i*(xMx-xMn)/199),yV=xV.map(x=>NPDF(x,m,s)),mxY=Math.max(...yV);
+    Plotly.newPlot('mc_normal',[{x:xV,y:yV,mode:'lines',fill:'tozeroy',fillcolor:C.fl,line:{color:C.m,width:2}},{x:data,y:data.map(()=>-mxY*.03),mode:'markers',marker:{color:C.m,size:5,symbol:'line-ns-open'}}],{...BL,shapes:[{type:'line',x0:lsl,x1:lsl,y0:0,y1:mxY,line:{color:C.r,width:2,dash:'dash'}},{type:'line',x0:usl,x1:usl,y0:0,y1:mxY,line:{color:C.r,width:2,dash:'dash'}},{type:'line',x0:m,x1:m,y0:0,y1:mxY,line:{color:C.g,width:2}}]},{responsive:true});break}
+   case 'scatter':{const sh=[{type:'line',x0:0,x1:n+1,y0:lsl,y1:lsl,line:{color:C.r,width:1.5,dash:'dash'}},{type:'line',x0:0,x1:n+1,y0:usl,y1:usl,line:{color:C.r,width:1.5,dash:'dash'}},{type:'line',x0:0,x1:n+1,y0:m,y1:m,line:{color:C.g,width:1.5}}];Plotly.newPlot('mc_scatter',[{x:data.map((_,i)=>i+1),y:data,mode:'markers',marker:{color:C.m,size:7}}],{...BL,shapes:sh,xaxis:{...BL.xaxis,title:'Obs'},yaxis:{...BL.yaxis,title:'Value'}},{responsive:true});break}
+   case 'control':{const ucl=m+3*s,lcl=m-3*s,xi=data.map((_,i)=>i+1);Plotly.newPlot('mc_control',[{x:xi,y:data,mode:'lines+markers',marker:{color:data.map(v=>(v>ucl||v<lcl)?C.r:C.m),size:6},line:{color:C.m,width:1.5}},{x:xi,y:Array(n).fill(m),mode:'lines',name:'CL',line:{color:C.g,width:1.5,dash:'dash'}},{x:xi,y:Array(n).fill(ucl),mode:'lines',name:'UCL',line:{color:C.r,width:1.5,dash:'dot'}},{x:xi,y:Array(n).fill(lcl),mode:'lines',name:'LCL',line:{color:C.r,width:1.5,dash:'dot'}}],{...BL,showlegend:true,legend:{x:0,y:1.1,orientation:'h'}},{responsive:true});break}
+   case 'capability':{const xMn=Math.min(lsl,m-4.5*s),xMx=Math.max(usl,m+4.5*s),xV=Array.from({length:300},(_,i)=>xMn+i*(xMx-xMn)/299),yV=xV.map(x=>NPDF(x,m,s)),mxY=Math.max(...yV);
+    Plotly.newPlot('mc_capability',[{x:xV,y:yV,mode:'lines',fill:'tozeroy',fillcolor:C.fl,line:{color:C.m,width:2}}],{...BL,shapes:[{type:'line',x0:lsl,x1:lsl,y0:0,y1:mxY*1.1,line:{color:C.r,width:2.5}},{type:'line',x0:usl,x1:usl,y0:0,y1:mxY*1.1,line:{color:C.r,width:2.5}},{type:'line',x0:m,x1:m,y0:0,y1:mxY*1.1,line:{color:C.m,width:1.5,dash:'dash'}},{type:'rect',x0:lsl,x1:usl,y0:0,y1:mxY*1.1,fillcolor:'rgba(15,138,79,0.04)',line:{width:0}}],annotations:[{x:lsl,y:mxY*1.05,text:`LSL=${lsl}`,showarrow:false,font:{size:10,color:C.r}},{x:usl,y:mxY*1.05,text:`USL=${usl}`,showarrow:false,font:{size:10,color:C.r}},{x:(lsl+usl)/2,y:mxY*.5,text:`Cp=${cp.toFixed(3)}\nCpk=${cpk.toFixed(3)}`,showarrow:false,font:{size:12,color:C.m},bgcolor:'rgba(255,255,255,.85)'}]},{responsive:true});break}
+   case 'pareto':{const bins=[{l:'Below LSL',c:data.filter(v=>v<lsl).length},{l:'LSL~-2σ',c:data.filter(v=>v>=lsl&&v<m-2*s).length},{l:'-2σ~-1σ',c:data.filter(v=>v>=m-2*s&&v<m-s).length},{l:'-1σ~Mean',c:data.filter(v=>v>=m-s&&v<m).length},{l:'Mean~+1σ',c:data.filter(v=>v>=m&&v<m+s).length},{l:'+1σ~+2σ',c:data.filter(v=>v>=m+s&&v<m+2*s).length},{l:'+2σ~USL',c:data.filter(v=>v>=m+2*s&&v<=usl).length},{l:'Above USL',c:data.filter(v=>v>usl).length}].sort((a,b)=>b.c-a.c);
+    const tot=bins.reduce((s,b)=>s+b.c,0);let cum=0;const cP=bins.map(b=>{cum+=b.c/tot*100;return cum});
+    Plotly.newPlot('mc_pareto',[{x:bins.map(b=>b.l),y:bins.map(b=>b.c),type:'bar',marker:{color:bins.map(b=>(b.l.includes('LSL')||b.l.includes('USL'))?C.r:C.m)}},{x:bins.map(b=>b.l),y:cP,mode:'lines+markers',yaxis:'y2',line:{color:C.o,width:2},marker:{size:5,color:C.o}}],{...BL,yaxis2:{title:'Cum%',overlaying:'y',side:'right',range:[0,105]},showlegend:false},{responsive:true});break}
+   case 'trend':{const xi=data.map((_,i)=>i+1),ma=data.map((v,i)=>i<2?null:(data[i]+data[i-1]+data[i-2])/3),xm=M(xi),ym=M(data),sl=xi.reduce((s,x,i)=>s+(x-xm)*(data[i]-ym),0)/xi.reduce((s,x)=>s+(x-xm)**2,0),ic=ym-sl*xm;
+    Plotly.newPlot('mc_trend',[{x:xi,y:data,mode:'lines+markers',marker:{size:5,color:C.m},line:{color:C.m,width:1.5}},{x:xi,y:ma,mode:'lines',line:{color:C.o,width:2,dash:'dash'},name:'3pt MA'},{x:xi,y:xi.map(x=>sl*x+ic),mode:'lines',line:{color:C.g,width:2},name:`Trend(slope=${sl.toFixed(4)})`}],{...BL,showlegend:true,legend:{x:0,y:1.1,orientation:'h'}},{responsive:true});break}
+  }
+ });
+
+ // GMP Checklist
+ buildGMP(data,m,s,cp,cpk,lsl,usl,oos,n,rsd,sk,kt);
+ // Show export bar
+ document.getElementById('exportBar').style.display='flex';
+ // Scroll to results
+ document.getElementById('resultScroll').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function buildGMP(data,m,s,cp,cpk,lsl,usl,oos,n,rsd,sk,kt){
+ const ck=[];
+ ck.push({r:'Specification Compliance',ref:S.smp?S.specs[S.smp].r:'KP GMP',cr:`${lsl} ~ ${usl}`,res:oos===0?'PASS':`FAIL (${oos} OOS)`,p:oos===0});
+ ck.push({r:'Process Capability (Cpk ≥ 1.33)',ref:'ICH Q8 QbD / KP GMP 제4장',cr:'Cpk ≥ 1.33',res:`Cpk = ${cpk.toFixed(3)}`,p:cpk>=1.33});
+ ck.push({r:'Potential Capability (Cp ≥ 1.33)',ref:'Six Sigma / PV',cr:'Cp ≥ 1.33',res:`Cp = ${cp.toFixed(3)}`,p:cp>=1.33});
+ ck.push({r:'Precision (RSD ≤ 2.0%)',ref:'ICH Q2(R1)',cr:'RSD ≤ 2.0%',res:`RSD = ${rsd.toFixed(2)}%`,p:rsd<=2});
+ ck.push({r:'Sample Size',ref:'Statistical Requirements',cr:'N ≥ 10',res:`N = ${n}`,p:n>=10});
+ ck.push({r:'Normality',ref:'Distribution Analysis',cr:'|Skew|<1, |Kurt|<3',res:`Skew=${Math.abs(sk).toFixed(2)}, Kurt=${Math.abs(kt).toFixed(2)}`,p:Math.abs(sk)<1&&Math.abs(kt)<3});
+ const fails=ck.filter(c=>!c.p).length;
+ let h=`<div class="sec"><div class="sec-hd">GMP Compliance Checklist <span class="tag ${fails?'tag-red':'tag-green'}">${fails?fails+' Non-Conformance':'ALL PASS'}</span></div>
+ <table class="tb"><thead><tr><th>Check</th><th>Regulation</th><th>Criteria</th><th>Result</th><th>Status</th></tr></thead><tbody>`;
+ ck.forEach(c=>{h+=`<tr><td>${c.r}</td><td style="font-size:10.5px;color:var(--ink3)">${c.ref}</td><td>${c.cr}</td><td>${c.res}</td><td style="font-weight:700;color:${c.p?'var(--green)':'var(--red)'}"><span class="tag ${c.p?'tag-green':'tag-red'}">${c.p?'PASS':'FAIL'}</span></td></tr>`});
+ h+=`</tbody></table>`;
+ if(oos>0)h+=`<div class="gmp gmp-fail" style="margin-top:12px"><strong style="color:var(--red)">OOS 발견 — 즉시 조치 필요</strong><br><span style="font-size:12px">1. 일탈 보고서 작성 (즉시) — KP GMP 제7장<br>2. Phase I 조사 착수 (24시간 이내)<br>3. 해당 배치 격리 및 부적합품 처리<br>4. CAPA 수립 (근본 원인 제거)</span></div>`;
+ h+=`</div>`;document.getElementById('mainGMP').innerHTML=h;
+}
+
+// ═══════════════════════════════════════════
+//  MULTI-VARIABLE
+// ═══════════════════════════════════════════
+function addV(){S.vc++;const d=document.createElement('div');d.className='vi';d.id=`v_${S.vc}`;
+ d.innerHTML=`<div class="vi-hd"><strong>Variable ${S.vc}</strong><button class="btn btn-r btn-s" onclick="this.closest('.vi').remove()">Remove</button></div><div class="row r2"><div class="fg"><label class="fl">Name</label><input class="fi vn" value="Variable ${S.vc}"></div><div class="fg"><label class="fl">Data</label><textarea class="ft vd" placeholder="comma-separated"></textarea></div></div>`;
+ document.getElementById('varList').appendChild(d)}
+function rmV(){const its=document.querySelectorAll('#varList .vi');if(its.length)its[its.length-1].remove()}
+function runMV(){
+ const vs=[];document.querySelectorAll('#varList .vi').forEach(it=>{const nm=it.querySelector('.vn').value,d=P(it.querySelector('.vd').value);if(d.length>=2)vs.push({nm,d})});
+ if(vs.length<2)return alert('2개 이상 변수 필요');
+ const tp=document.getElementById('mvType').value;
+ S.ctx=`Multi-Variable (${tp}):\n`+vs.map(v=>`${v.nm}: N=${v.d.length}, Mean=${M(v.d).toFixed(3)}, SD=${SD(v.d).toFixed(4)}`).join('\n');
+ let h='';
+ if(tp==='compare'){
+  h=`<table class="tb" style="margin-top:14px"><thead><tr><th>Variable</th><th>N</th><th>Mean</th><th>SD</th><th>Min</th><th>Max</th><th>RSD%</th></tr></thead><tbody>`;
+  vs.forEach(v=>{const m=M(v.d),s=SD(v.d);h+=`<tr><td>${v.nm}</td><td>${v.d.length}</td><td>${m.toFixed(3)}</td><td>${s.toFixed(4)}</td><td>${Math.min(...v.d).toFixed(3)}</td><td>${Math.max(...v.d).toFixed(3)}</td><td>${(s/m*100).toFixed(2)}</td></tr>`});
+  h+=`</tbody></table>`;Plotly.newPlot('mvPlot',vs.map(v=>({y:v.d,type:'box',name:v.nm,boxmean:'sd'})),{font:{family:'Outfit'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:420,margin:{l:48,r:28,t:28,b:38}},{responsive:true})
+ }else if(tp==='correlation'){
+  if(vs.length!==2)return alert('Correlation: 정확히 2변수 필요');
+  const[a,b]=vs,ml=Math.min(a.d.length,b.d.length),x=a.d.slice(0,ml),y=b.d.slice(0,ml),mx=M(x),my=M(y);
+  const nm=x.reduce((s,xi,i)=>s+(xi-mx)*(y[i]-my),0),dx=Math.sqrt(x.reduce((s,xi)=>s+(xi-mx)**2,0)),dy=Math.sqrt(y.reduce((s,yi)=>s+(yi-my)**2,0)),r=nm/(dx*dy),r2=r*r;
+  S.ctx+=`\nr=${r.toFixed(4)}, R²=${r2.toFixed(4)}`;
+  h=`<div class="sg sg3" style="margin-top:14px"><div class="sc sc-p"><div class="lb">r</div><div class="vl">${r.toFixed(4)}</div></div><div class="sc"><div class="lb">R²</div><div class="vl">${r2.toFixed(4)}</div></div><div class="sc"><div class="lb">Strength</div><div class="vl">${Math.abs(r)>.7?'Strong':Math.abs(r)>.4?'Moderate':'Weak'}</div></div></div>`;
+  Plotly.newPlot('mvPlot',[{x,y,mode:'markers',marker:{color:'#2563eb',size:8}}],{font:{family:'Outfit'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:420,xaxis:{title:a.nm},yaxis:{title:b.nm}},{responsive:true})
+ }else{
+  Plotly.newPlot('mvPlot',vs.map(v=>({x:v.d.map((_,i)=>i+1),y:v.d,mode:'lines+markers',name:v.nm,line:{width:2},marker:{size:4}})),{font:{family:'Outfit'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:420,xaxis:{title:'Time'},yaxis:{title:'Value'}},{responsive:true});
+  h=`<div class="banner banner-pass" style="margin-top:14px"><div class="icon">T</div><div class="txt"><strong>Trend Analysis</strong>${vs.length}개 변수 추세 비교</div></div>`
+ }
+ document.getElementById('mvRes').innerHTML=h
+}
+
+// ═══════════════════════════════════════════
+//  TOST
+// ═══════════════════════════════════════════
+function runTOST(){
+ const ref=P(document.getElementById('tRef').value),test=P(document.getElementById('tTest').value),mg=+document.getElementById('tMarg').value;
+ if(ref.length<2||test.length<2)return alert('각 그룹 2개 이상 필요');
+ const n1=ref.length,n2=test.length,m1=M(ref),m2=M(test),s1=SD(ref),s2=SD(test),df=n1+n2-2;
+ const sp=Math.sqrt(((n1-1)*s1**2+(n2-1)*s2**2)/df),se=sp*Math.sqrt(1/n1+1/n2);
+ const diff=m1-m2,eq=m1*(mg/100),tc=Math.abs(tInv(.05,df)),ciL=diff-tc*se,ciU=diff+tc*se,isEq=ciL>-eq&&ciU<eq;
+ S.ctx=`TOST: Ref N=${n1} Mean=${m1.toFixed(3)}, Test N=${n2} Mean=${m2.toFixed(3)}\nDiff=${diff.toFixed(4)}, 90%CI=[${ciL.toFixed(4)},${ciU.toFixed(4)}]\nMargin=±${eq.toFixed(3)}, Result=${isEq?'EQUIVALENT':'NOT EQUIVALENT'}`;
+ let h=`<div class="banner ${isEq?'banner-pass':'banner-fail'}" style="margin-top:14px"><div class="icon">${isEq?'P':'F'}</div><div class="txt"><strong>${isEq?'동등성 입증 (EQUIVALENT)':'동등성 미입증 (NOT EQUIVALENT)'}</strong>90% CI [${ciL.toFixed(4)}, ${ciU.toFixed(4)}] | Margin: ±${eq.toFixed(3)}</div></div>`;
+ h+=`<div class="sg sg4" style="margin-top:12px"><div class="sc"><div class="lb">Ref Mean</div><div class="vl">${m1.toFixed(3)}</div></div><div class="sc"><div class="lb">Test Mean</div><div class="vl">${m2.toFixed(3)}</div></div><div class="sc sc-p"><div class="lb">Diff</div><div class="vl">${diff.toFixed(4)}</div></div><div class="sc ${isEq?'sc-g':'sc-r'}"><div class="lb">Result</div><div class="vl">${isEq?'EQUIV':'NOT EQ'}</div></div></div>`;
+ document.getElementById('tRes').innerHTML=h;
+ Plotly.newPlot('tPlot',[{x:[ciL,ciU],y:[1,1],mode:'lines+markers',line:{color:'#2563eb',width:4},marker:{size:10}},{x:[diff],y:[1],mode:'markers',marker:{color:'#121520',size:14,symbol:'diamond'}},{x:[-eq,-eq],y:[.5,1.5],mode:'lines',line:{color:'#c81e3a',dash:'dash',width:2}},{x:[eq,eq],y:[.5,1.5],mode:'lines',line:{color:'#c81e3a',dash:'dash',width:2}},{x:[0,0],y:[.5,1.5],mode:'lines',line:{color:'#9aa0b4',dash:'dot',width:1}}],{font:{family:'Outfit'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:250,yaxis:{visible:false,range:[.3,1.7]},showlegend:false,margin:{l:48,r:28,t:20,b:38}},{responsive:true})
+}
+
+// ═══════════════════════════════════════════
+//  ANOVA
+// ═══════════════════════════════════════════
+function addAG(){S.agc++;const d=document.createElement('div');d.className='fg';d.style.marginBottom='10px';d.innerHTML=`<label class="fl">Group ${String.fromCharCode(64+S.agc)}</label><textarea class="ft av-g"></textarea>`;document.getElementById('avGroups').appendChild(d)}
+function runAV(){
+ const gs=[...document.querySelectorAll('.av-g')].map(t=>P(t.value)).filter(g=>g.length>=2);
+ if(gs.length<2)return alert('2개 이상 그룹 필요');
+ const k=gs.length,all=gs.flat(),N=all.length,gm=M(all);
+ const SSB=gs.reduce((s,g)=>s+g.length*(M(g)-gm)**2,0),SSW=gs.reduce((s,g)=>s+g.reduce((ss,x)=>ss+(x-M(g))**2,0),0);
+ const dfB=k-1,dfW=N-k,MSB=SSB/dfB,MSW=SSW/dfW,F=MSB/MSW,Fc=fInv(.95,dfB,dfW),sig=F>Fc;
+ const qc=qCrit(.05,k,dfW),nH=k/gs.reduce((s,g)=>s+1/g.length,0),hsd=qc*Math.sqrt(MSW/nH);
+ const pw=[];for(let i=0;i<k;i++)for(let j=i+1;j<k;j++){const d=Math.abs(M(gs[i])-M(gs[j]));pw.push({a:String.fromCharCode(65+i),b:String.fromCharCode(65+j),d,s:d>hsd})}
+ S.ctx=`ANOVA: k=${k}, N=${N}, F=${F.toFixed(4)}, Fc=${Fc.toFixed(4)}, Sig=${sig}\nSSB=${SSB.toFixed(4)}, SSW=${SSW.toFixed(4)}\nTukey HSD=${hsd.toFixed(4)}\n`+pw.map(p=>`${p.a}v${p.b}: diff=${p.d.toFixed(4)} ${p.s?'SIG':'ns'}`).join('\n');
+ let h=`<div class="banner ${sig?'banner-fail':'banner-pass'}" style="margin-top:14px"><div class="icon">${sig?'!':'P'}</div><div class="txt"><strong>${sig?'유의한 차이 발견 (F > Fc)':'유의한 차이 없음'}</strong>F=${F.toFixed(4)} vs Fc=${Fc.toFixed(4)} (α=0.05)</div></div>`;
+ h+=`<table class="tb" style="margin-top:12px"><thead><tr><th>Source</th><th>df</th><th>SS</th><th>MS</th><th>F</th><th>Fc</th></tr></thead><tbody>
+ <tr><td>Between</td><td>${dfB}</td><td>${SSB.toFixed(4)}</td><td>${MSB.toFixed(4)}</td><td><strong>${F.toFixed(4)}</strong></td><td>${Fc.toFixed(4)}</td></tr>
+ <tr><td>Within</td><td>${dfW}</td><td>${SSW.toFixed(4)}</td><td>${MSW.toFixed(4)}</td><td></td><td></td></tr></tbody></table>`;
+ if(pw.length){h+=`<div class="sec-hd" style="margin-top:14px;font-size:13px">Tukey HSD (threshold=${hsd.toFixed(4)})</div><table class="tb"><thead><tr><th>Pair</th><th>|Diff|</th><th>HSD</th><th>Result</th></tr></thead><tbody>`;
+  pw.forEach(p=>{h+=`<tr><td>${p.a} vs ${p.b}</td><td>${p.d.toFixed(4)}</td><td>${hsd.toFixed(4)}</td><td><span class="tag ${p.s?'tag-red':'tag-green'}">${p.s?'Significant':'Not Sig'}</span></td></tr>`});h+=`</tbody></table>`}
+ document.getElementById('avRes').innerHTML=h;
+ Plotly.newPlot('avPlot',gs.map((g,i)=>({y:g,type:'box',name:`Group ${String.fromCharCode(65+i)}`,boxmean:'sd'})),{font:{family:'Outfit'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:400,margin:{l:48,r:28,t:28,b:38}},{responsive:true})
+}
+
+// ═══════════════════════════════════════════
+//  SPC + NELSON RULES
+// ═══════════════════════════════════════════
+function nelson(data,cl,sig){
+ const v=[],n=data.length,z=data.map(x=>(x-cl)/sig);
+ for(let i=0;i<n;i++)if(Math.abs(z[i])>3){const e=v.find(x=>x.r===1);if(e)e.p.push(i+1);else v.push({r:1,d:'Point beyond ±3σ',p:[i+1]})}
+ for(let i=0;i<=n-9;i++){if(data.slice(i,i+9).every(x=>x>cl)||data.slice(i,i+9).every(x=>x<cl)){const pts=Array.from({length:9},(_,j)=>i+j+1);const e=v.find(x=>x.r===2);if(e)pts.forEach(p=>{if(!e.p.includes(p))e.p.push(p)});else v.push({r:2,d:'9 consecutive same side of CL',p:pts})}}
+ for(let i=0;i<=n-6;i++){let inc=true,dec=true;for(let j=i;j<i+5;j++){if(data[j+1]<=data[j])inc=false;if(data[j+1]>=data[j])dec=false}if(inc||dec){const pts=Array.from({length:6},(_,j)=>i+j+1);const e=v.find(x=>x.r===3);if(e)pts.forEach(p=>{if(!e.p.includes(p))e.p.push(p)});else v.push({r:3,d:`6 consecutive ${inc?'increasing':'decreasing'}`,p:pts})}}
+ for(let i=0;i<=n-14;i++){let alt=true;for(let j=i;j<i+13;j++){if((data[j+1]-data[j])*(j+2<n?data[j+2]-data[j+1]:0)>=0){alt=false;break}}if(alt)v.push({r:4,d:'14 alternating up/down',p:Array.from({length:14},(_,j)=>i+j+1)})}
+ for(let i=0;i<=n-3;i++){const s=z.slice(i,i+3);if(s.filter(x=>x>2).length>=2||s.filter(x=>x<-2).length>=2){const pts=Array.from({length:3},(_,j)=>i+j+1);const e=v.find(x=>x.r===5);if(e)pts.forEach(p=>{if(!e.p.includes(p))e.p.push(p)});else v.push({r:5,d:'2/3 beyond ±2σ same side',p:pts})}}
+ for(let i=0;i<=n-5;i++){const s=z.slice(i,i+5);if(s.filter(x=>x>1).length>=4||s.filter(x=>x<-1).length>=4){const pts=Array.from({length:5},(_,j)=>i+j+1);const e=v.find(x=>x.r===6);if(e)pts.forEach(p=>{if(!e.p.includes(p))e.p.push(p)});else v.push({r:6,d:'4/5 beyond ±1σ same side',p:pts})}}
+ for(let i=0;i<=n-15;i++){if(z.slice(i,i+15).every(x=>Math.abs(x)<1))v.push({r:7,d:'15 within ±1σ (stratification)',p:Array.from({length:15},(_,j)=>i+j+1)})}
+ for(let i=0;i<=n-8;i++){if(z.slice(i,i+8).every(x=>Math.abs(x)>1))v.push({r:8,d:'8 beyond ±1σ both sides (mixture)',p:Array.from({length:8},(_,j)=>i+j+1)})}
+ return v
+}
+
+function runSPC(){
+ const data=P(document.getElementById('spcD').value);if(data.length<5)return alert('5개 이상 필요');
+ const sig=+document.getElementById('spcSig').value,tp=document.getElementById('spcTp').value;
+ const n=data.length,m=M(data),s=SD(data);
+ const MR=[];for(let i=1;i<n;i++)MR.push(Math.abs(data[i]-data[i-1]));
+ const mrb=M(MR),d2=1.128,sw=mrb/d2;
+ const cl=m,ucl=m+sig*sw,lcl=m-sig*sw;
+ const D4=3.267,uclMR=D4*mrb;
+ const vio=nelson(data,cl,sw),ooc=data.filter(v=>v>ucl||v<lcl).length;
+ const isOK=ooc===0&&vio.length===0;
+ S.ctx=`SPC: N=${n}, CL=${cl.toFixed(4)}, UCL=${ucl.toFixed(4)}, LCL=${lcl.toFixed(4)}\nσ(within)=${sw.toFixed(4)}, MRbar=${mrb.toFixed(4)}\nOOC=${ooc}, Nelson violations=${vio.length}\n${vio.map(v=>'Rule'+v.r+': '+v.d+' pts:'+v.p.join(',')).join('\n')}`;
+ let h=`<div class="banner ${isOK?'banner-pass':ooc?'banner-fail':'banner-warn'}" style="margin-top:14px"><div class="icon">${isOK?'P':'!'}</div><div class="txt"><strong>${isOK?'공정 안정 상태 (In Control)':ooc?`관리한계 이탈 ${ooc}건 발견`:'Nelson Rule 위반 감지'}</strong>${isOK?'모든 포인트가 관리한계 이내, Nelson Rule 위반 없음':'조사 및 조치 필요'}</div></div>`;
+ h+=`<div class="sg sg5" style="margin-top:12px"><div class="sc sc-p"><div class="lb">CL</div><div class="vl">${cl.toFixed(3)}</div></div><div class="sc"><div class="lb">UCL</div><div class="vl">${ucl.toFixed(3)}</div></div><div class="sc"><div class="lb">LCL</div><div class="vl">${lcl.toFixed(3)}</div></div><div class="sc ${ooc?'sc-r':'sc-g'}"><div class="lb">OOC</div><div class="vl">${ooc}</div></div><div class="sc ${vio.length?'sc-a':'sc-g'}"><div class="lb">Nelson</div><div class="vl">${vio.length}</div></div></div>`;
+ if(vio.length>0){h+=`<div class="gmp gmp-fail" style="margin-top:10px"><strong>Nelson Rule Violations</strong><br>`;vio.forEach(v=>{h+=`<span style="font-size:12px">Rule ${v.r}: ${v.d} (Points: ${v.p.join(', ')})</span><br>`});h+=`</div>`}
+ document.getElementById('spcRes').innerHTML=h;
+ const xi=data.map((_,i)=>i+1),oocS=new Set(),nelS=new Set();data.forEach((v,i)=>{if(v>ucl||v<lcl)oocS.add(i)});vio.forEach(v=>v.p.forEach(p=>nelS.add(p-1)));
+ const mc=xi.map(i=>oocS.has(i-1)?'#c81e3a':nelS.has(i-1)?'#b45309':'#2563eb');
+ Plotly.newPlot('spcPlot',[{x:xi,y:data,mode:'lines+markers',marker:{color:mc,size:6},line:{color:'#2563eb',width:1.5}},{x:xi,y:Array(n).fill(cl),mode:'lines',name:'CL',line:{color:'#0f8a4f',width:1.5,dash:'dash'}},{x:xi,y:Array(n).fill(ucl),mode:'lines',name:'UCL',line:{color:'#c81e3a',width:1.5,dash:'dot'}},{x:xi,y:Array(n).fill(lcl),mode:'lines',name:'LCL',line:{color:'#c81e3a',width:1.5,dash:'dot'}}],{font:{family:'Outfit'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:400,showlegend:true,legend:{x:0,y:1.1,orientation:'h'},margin:{l:48,r:28,t:36,b:38}},{responsive:true});
+ if(tp==='imr'){const mrX=MR.map((_,i)=>i+2);Plotly.newPlot('mrPlot',[{x:mrX,y:MR,mode:'lines+markers',marker:{color:MR.map(v=>v>uclMR?'#c81e3a':'#2563eb'),size:5},line:{color:'#2563eb',width:1.5}},{x:mrX,y:Array(MR.length).fill(mrb),mode:'lines',name:'CL',line:{color:'#0f8a4f',dash:'dash'}},{x:mrX,y:Array(MR.length).fill(uclMR),mode:'lines',name:'UCL',line:{color:'#c81e3a',dash:'dot'}}],{font:{family:'Outfit'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:260,margin:{l:48,r:28,t:28,b:38}},{responsive:true})}
+}
+
+// ═══════════════════════════════════════════
+//  CPK
+// ═══════════════════════════════════════════
+function runCPK(){
+ const data=P(document.getElementById('cpkD').value);if(data.length<5)return alert('5개 이상 필요');
+ const lsl=+document.getElementById('cpkL').value,usl=+document.getElementById('cpkU').value,tgt=+document.getElementById('cpkT').value;
+ const n=data.length,m=M(data),s=SD(data),s0=SD(data,0);
+ const MR=[];for(let i=1;i<n;i++)MR.push(Math.abs(data[i]-data[i-1]));const sw=M(MR)/1.128;
+ const cp=(usl-lsl)/(6*sw),cpu=(usl-m)/(3*sw),cpl=(m-lsl)/(3*sw),cpk=Math.min(cpu,cpl);
+ const pp=(usl-lsl)/(6*s),ppk=Math.min((usl-m)/(3*s),(m-lsl)/(3*s));
+ const sigLvl=Math.min((usl-m)/sw,(m-lsl)/sw);
+ S.ctx=`Cpk Analysis: N=${n}, Mean=${m.toFixed(4)}, SD=${s.toFixed(4)}, SW=${sw.toFixed(4)}\nLSL=${lsl}, USL=${usl}\nCp=${cp.toFixed(4)}, Cpk=${cpk.toFixed(4)}, CPU=${cpu.toFixed(4)}, CPL=${cpl.toFixed(4)}\nPp=${pp.toFixed(4)}, Ppk=${ppk.toFixed(4)}, Sigma=${sigLvl.toFixed(2)}`;
+ const cls=cpk>=1.33?'banner-pass':cpk>=1?'banner-warn':'banner-fail';
+ const cic=cpk>=1.33?'P':cpk>=1?'!':'F';
+ const ctxt=cpk>=1.33?`공정능력 적합 (Cpk=${cpk.toFixed(3)} ≥ 1.33)`:cpk>=1?`공정능력 경계 (Cpk=${cpk.toFixed(3)}, 1.0~1.33)`:`공정능력 부적합 (Cpk=${cpk.toFixed(3)} < 1.0)`;
+ let h=`<div class="banner ${cls}" style="margin-top:14px"><div class="icon">${cic}</div><div class="txt"><strong>${ctxt}</strong>${cpk>=1.33?'규격 여유 충분, 지속 생산 적합':cpk>=1?'모니터링 강화 필요':'공정 개선 및 재밸리데이션 필요 (ICH Q8/KP GMP 제4장)'}</div></div>`;
+ h+=`<div class="sg sg6" style="margin-top:12px"><div class="sc ${cpk>=1.33?'sc-g':cpk>=1?'sc-a':'sc-r'}"><div class="lb">Cpk</div><div class="vl">${cpk.toFixed(3)}</div></div><div class="sc"><div class="lb">Cp</div><div class="vl">${cp.toFixed(3)}</div></div><div class="sc"><div class="lb">CPU</div><div class="vl">${cpu.toFixed(3)}</div></div><div class="sc"><div class="lb">CPL</div><div class="vl">${cpl.toFixed(3)}</div></div><div class="sc"><div class="lb">Ppk</div><div class="vl">${ppk.toFixed(3)}</div></div><div class="sc"><div class="lb">Sigma Level</div><div class="vl">${sigLvl.toFixed(1)}σ</div></div></div>`;
+ document.getElementById('cpkRes').innerHTML=h;
+ const xMn=Math.min(lsl,m-4.5*sw),xMx=Math.max(usl,m+4.5*sw),xV=Array.from({length:300},(_,i)=>xMn+i*(xMx-xMn)/299),yV=xV.map(x=>NPDF(x,m,sw)),mxY=Math.max(...yV);
+ Plotly.newPlot('cpkPlot',[{x:xV,y:yV,mode:'lines',fill:'tozeroy',fillcolor:'rgba(37,99,235,0.1)',line:{color:'#2563eb',width:2.5}},{x:data,y:data.map(()=>-mxY*.04),mode:'markers',marker:{color:'#2563eb',size:4,symbol:'line-ns-open'}}],{font:{family:'Outfit'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:420,shapes:[{type:'line',x0:lsl,x1:lsl,y0:-mxY*.06,y1:mxY*1.1,line:{color:'#c81e3a',width:2.5}},{type:'line',x0:usl,x1:usl,y0:-mxY*.06,y1:mxY*1.1,line:{color:'#c81e3a',width:2.5}},{type:'line',x0:tgt,x1:tgt,y0:0,y1:mxY*1.1,line:{color:'#0f8a4f',width:1.5,dash:'dash'}},{type:'line',x0:m,x1:m,y0:0,y1:mxY*1.1,line:{color:'#2563eb',width:1.5,dash:'dash'}}],annotations:[{x:lsl,y:mxY*1.07,text:`LSL=${lsl}`,showarrow:false,font:{size:10,color:'#c81e3a'}},{x:usl,y:mxY*1.07,text:`USL=${usl}`,showarrow:false,font:{size:10,color:'#c81e3a'}},{x:m,y:mxY*.8,text:`Cpk=${cpk.toFixed(3)}`,showarrow:true,arrowhead:0,ax:35,ay:-25,font:{size:12,color:'#2563eb'},bgcolor:'rgba(255,255,255,.9)'}],margin:{l:48,r:28,t:28,b:38}},{responsive:true})
+}
+
+// ═══════════════════════════════════════════
+//  REGRESSION
+// ═══════════════════════════════════════════
+function runReg(){
+ const x=P(document.getElementById('regX').value),y=P(document.getElementById('regY').value),n=Math.min(x.length,y.length);
+ if(n<3)return alert('3쌍 이상 필요');
+ const xd=x.slice(0,n),yd=y.slice(0,n),mx=M(xd),my=M(yd);
+ const sl=xd.reduce((s,xi,i)=>s+(xi-mx)*(yd[i]-my),0)/xd.reduce((s,xi)=>s+(xi-mx)**2,0),ic=my-sl*mx;
+ const yP=xd.map(xi=>sl*xi+ic),ssT=yd.reduce((s,yi)=>s+(yi-my)**2,0),ssR=yd.reduce((s,yi,i)=>s+(yi-yP[i])**2,0);
+ const r2=1-ssR/ssT,r=Math.sqrt(r2)*(sl>=0?1:-1),se=Math.sqrt(ssR/(n-2));
+ S.ctx=`Regression: y=${sl.toFixed(4)}x+${ic.toFixed(4)}\nR²=${r2.toFixed(4)}, r=${r.toFixed(4)}, SE=${se.toFixed(4)}, N=${n}`;
+ let h=`<div class="sg sg4" style="margin-top:14px"><div class="sc sc-p"><div class="lb">R²</div><div class="vl">${r2.toFixed(4)}</div></div><div class="sc"><div class="lb">r</div><div class="vl">${r.toFixed(4)}</div></div><div class="sc"><div class="lb">Slope</div><div class="vl">${sl.toFixed(4)}</div></div><div class="sc"><div class="lb">Intercept</div><div class="vl">${ic.toFixed(4)}</div></div></div>`;
+ h+=`<div class="banner banner-pass" style="margin-top:10px"><div class="icon">R</div><div class="txt"><strong>y = ${sl.toFixed(4)}x + ${ic.toFixed(4)}</strong>SE=${se.toFixed(4)} | N=${n}</div></div>`;
+ document.getElementById('regRes').innerHTML=h;
+ Plotly.newPlot('regPlot',[{x:xd,y:yd,mode:'markers',marker:{color:'#2563eb',size:8}},{x:xd,y:yP,mode:'lines',line:{color:'#c81e3a',width:2}}],{font:{family:'Outfit'},paper_bgcolor:'#fff',plot_bgcolor:'#fff',height:400,xaxis:{title:'X'},yaxis:{title:'Y'},margin:{l:48,r:28,t:28,b:38}},{responsive:true})
+}
+
+// ═══════════════════════════════════════════
+//  AI ENGINE (Claude API)
+// ═══════════════════════════════════════════
+function saveKey(){const k=document.getElementById('apiKey').value;if(k){localStorage.setItem('edaKey',k);document.getElementById('apiKey').style.borderColor='#0f8a4f';setTimeout(()=>document.getElementById('apiKey').style.borderColor='',1500)}}
+function getKey(){return document.getElementById('apiKey').value||localStorage.getItem('edaKey')||''}
+
+function addAI(txt,tp){
+ const d=document.getElementById('aiMsgs'),m=document.createElement('div');m.className=`ai-m ${tp}`;
+ if(tp==='ai')m.innerHTML=`<div class="mlbl">AI Analysis</div>${fmtAI(txt)}`;
+ else m.textContent=txt;
+ d.appendChild(m);d.scrollTop=d.scrollHeight;return m
+}
+function addLoad(){const d=document.getElementById('aiMsgs'),m=document.createElement('div');m.className='ai-m ai';m.id='ldg';m.innerHTML=`<div class="mlbl">Analyzing</div><div class="ai-load"><span></span><span></span><span></span></div>`;d.appendChild(m);d.scrollTop=d.scrollHeight}
+function rmLoad(){const e=document.getElementById('ldg');if(e)e.remove()}
+
+function fmtAI(t){
+ // Proper markdown to HTML conversion
+ let h=t;
+ // Escape HTML entities first
+ h=h.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+ // Code blocks (triple backtick)
+ h=h.replace(/```([^`]*?)```/gs,(m,c)=>`<pre>${c.trim()}</pre>`);
+
+ // Tables: detect | header | lines and convert
+ h=h.replace(/((\|[^\n]+\|\n)+)/g, function(tableBlock){
+  const rows=tableBlock.trim().split('\n').filter(r=>r.trim());
+  if(rows.length<2)return tableBlock;
+  let tbl='<table>';
+  rows.forEach((row,ri)=>{
+   if(row.replace(/[|\-:\s]/g,'').length===0)return; // separator row
+   const cells=row.split('|').filter(c=>c.trim()!=='');
+   const tag=ri===0?'th':'td';
+   tbl+='<tr>'+cells.map(c=>`<${tag}>${c.trim()}</${tag}>`).join('')+'</tr>';
+  });
+  tbl+='</table>';
+  return tbl;
+ });
+
+ // Headers
+ h=h.replace(/^#### (.*$)/gm,'<h4>$1</h4>');
+ h=h.replace(/^### (.*$)/gm,'<h4 style="color:#e2e8f0;font-size:13px;margin:10px 0 5px;border-bottom:1px solid #374151;padding-bottom:4px">$1</h4>');
+ h=h.replace(/^## (.*$)/gm,'<h3 style="color:#e2e8f0;font-size:14px;margin:12px 0 6px;border-bottom:1px solid #374151;padding-bottom:4px">$1</h3>');
+ h=h.replace(/^# (.*$)/gm,'<h3 style="color:#e2e8f0;font-size:15px;margin:14px 0 6px">$1</h3>');
+
+ // Judgment tags
+ h=h.replace(/\*?\*?\[(적합|PASS)[^\]]*\]\*?\*?/g,m=>`<span class="ftag ftag-pass">${m.replace(/\*\*/g,'')}</span>`);
+ h=h.replace(/\*?\*?\[(부적합|FAIL|불합격)[^\]]*\]\*?\*?/g,m=>`<span class="ftag ftag-fail">${m.replace(/\*\*/g,'')}</span>`);
+ h=h.replace(/\*?\*?\[(주의|WARNING|OOT|경고)[^\]]*\]\*?\*?/g,m=>`<span class="ftag ftag-warn">${m.replace(/\*\*/g,'')}</span>`);
+ h=h.replace(/\[(OOS[^\]]*)\]/g,'<span class="ftag ftag-fail">$1</span>');
+
+ // GMP regulation reference boxes
+ h=h.replace(/\*\*규정:\*\*\s*([^\n]+)/g,'<div class="gref"><strong>규정:</strong> $1</div>');
+ h=h.replace(/\*\*기준:\*\*\s*([^\n]+)/g,'<div class="gref"><strong>기준:</strong> $1</div>');
+ h=h.replace(/\*\*측정값:\*\*\s*([^\n]+)/g,'<div class="gref"><strong>측정값:</strong> $1</div>');
+ h=h.replace(/\*\*판정:\*\*\s*([^\n]+)/g,(m,p)=>`<div class="gref"><strong>판정:</strong> ${p.includes('부적합')||p.includes('FAIL')?'<span class="ftag ftag-fail">'+p.trim()+'</span>':p.includes('주의')?'<span class="ftag ftag-warn">'+p.trim()+'</span>':'<span class="ftag ftag-pass">'+p.trim()+'</span>'}</div>`);
+ h=h.replace(/\*\*사유:\*\*\s*([^\n]+)/g,'<div class="gref"><strong>사유:</strong> $1</div>');
+ h=h.replace(/\*\*리스크[^:]*:\*\*\s*([^\n]+)/g,'<div class="gref"><strong>리스크:</strong> $1</div>');
+ h=h.replace(/\*\*필요 조치:\*\*/g,'<div class="gref" style="border-left-color:#dc2626"><strong>필요 조치:</strong></div>');
+ h=h.replace(/\*\*심각도[^:]*:\*\*\s*([^\n]+)/g,'<div class="gref"><strong>심각도:</strong> $1</div>');
+ h=h.replace(/\*\*발생가능성[^:]*:\*\*\s*([^\n]+)/g,'<div class="gref"><strong>발생가능성:</strong> $1</div>');
+ h=h.replace(/\*\*검출가능성[^:]*:\*\*\s*([^\n]+)/g,'<div class="gref"><strong>검출가능성:</strong> $1</div>');
+ h=h.replace(/\*\*RPN[^:]*:\*\*\s*([^\n]+)/g,'<div class="gref"><strong>RPN:</strong> $1</div>');
+
+ // Bold & italic
+ h=h.replace(/\*\*\*(.*?)\*\*\*/g,'<strong><em>$1</em></strong>');
+ h=h.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+ h=h.replace(/\*(.*?)\*/g,'<em>$1</em>');
+
+ // Inline code
+ h=h.replace(/`([^`]+)`/g,'<code style="background:#111827;padding:1px 5px;border-radius:3px;font-size:10px;color:#93c5fd">$1</code>');
+
+ // Ordered lists (numbered)
+ h=h.replace(/^(\d+)\.\s+(.+)$/gm,'<div style="padding:2px 0 2px 16px;position:relative"><span style="position:absolute;left:0;color:#6b7280;font-weight:600">$1.</span> $2</div>');
+
+ // Unordered lists
+ h=h.replace(/^[-*]\s+(.+)$/gm,'<div style="padding:2px 0 2px 16px;position:relative"><span style="position:absolute;left:2px;color:#6b7280">&#8226;</span> $1</div>');
+
+ // Horizontal rules
+ h=h.replace(/^---+$/gm,'<hr style="border:none;border-top:1px solid #374151;margin:8px 0">');
+
+ // Line breaks (remaining)
+ h=h.replace(/\n\n/g,'<div style="height:8px"></div>');
+ h=h.replace(/\n/g,'<br>');
+
+ return h;
+}
+
+function buildSysPrompt(){
+ const si=S.smp?S.specs[S.smp]:null;
+ return `You are PharmQC AI, an expert in pharmaceutical quality control, GMP validation, and biostatistics.
+
+═══ RESPONSE LANGUAGE ═══
+Always respond in Korean (한국어). Professional tone.
+
+═══ SAMPLE TYPE ═══
+${si?si.nm:'Not specified'}
+${si?`Applicable Regulations: ${si.r}\nDescription: ${si.d}`:''}
+
+═══ CRITICAL: 3-TIER RESPONSE STRUCTURE ═══
+Every response MUST follow this 3-tier structure:
+
+## Tier 1: 한눈에 보는 결론
+- Start with **[적합]** or **[부적합]** or **[주의]** tag
+- ONE sentence conclusion a non-expert can understand
+- Use simple analogy for key metric
+
+## Tier 2: 쉬운 해석
+- Explain WHAT numbers mean in everyday language
+- Cpk → "도로 중앙 여유" analogy (높을수록 가장자리까지 멀어 안전)
+- OOS → "허용 범위를 벗어난 값"
+- p-value → "우연일 확률" (작을수록 실제 차이)
+- Include "왜 중요한가?" section
+- Use table for key metrics with 적합/부적합 markers
+
+## Tier 3: 전문가 상세 분석
+For each finding use EXACTLY this format:
+**규정:** (specific regulation)
+**기준:** (acceptance criteria)
+**측정값:** (measured value)
+**판정:** 적합/부적합/주의
+**사유:** (reason)
+
+For non-conformance add:
+**리스크:** OOS/OOT/Critical/Major/Minor
+**필요 조치:**
+1. (immediate action)
+2. (investigation)
+3. (CAPA)
+4. (documentation)
+
+**ICH Q9 리스크 평가:**
+- 심각도: 높음/중간/낮음
+- 발생가능성: 높음/중간/낮음
+- 검출가능성: 높음/중간/낮음
+- RPN: (value)
+
+═══ REGULATORY REFERENCES ═══
+Korean GMP: Ch.4 Validation, Ch.5 QC, Ch.7 Deviation
+ICH: Q1A, Q2(R1), Q6A, Q8(R2), Q9, Q10
+FDA Process Validation Guidance (2011)
+AIAG SPC Manual, Six Sigma Cpk≥1.33
+
+${si&&S.smp==='api'?'API: KP/USP/EP Assay 98-102%, impurity limits':''}
+${si&&S.smp==='finished'?'Finished: Assay 95-105%, CU AV≤15, Dissolution Q+5%':''}
+${si&&S.smp==='stability'?'Stability: ICH Q1A, 25°C/60%RH, 40°C/75%RH':''}
+${si&&S.smp==='validation'?'Validation: 3-batch Cpk≥1.33, consistency':''}
+${si&&S.smp==='cleaning'?'Cleaning: MAC/MACO, 10ppm, TOC limits':''}
+${si&&S.smp==='method'?'Method Val: Accuracy 98-102%, RSD≤2%, R²≥0.999':''}
+
+═══ FORMATTING ═══
+- Never use emoji
+- Use markdown tables for comparison
+- Bold critical values
+- Keep total response under 1500 words`
+}
+
+async function callAI(prompt){
+ const key=getKey();if(!key){addAI('Claude API Key를 입력해주세요 (상단 헤더 영역).','ai');return null}
+ try{
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,system:buildSysPrompt(),messages:[...S.hist,{role:'user',content:prompt}]})});
+  const data=await res.json();
+  if(data.error)return`API Error: ${data.error.message}`;
+  if(data.content&&data.content[0]){const txt=data.content[0].text;S.hist.push({role:'user',content:prompt},{role:'assistant',content:txt});if(S.hist.length>20)S.hist=S.hist.slice(-16);return txt}
+  return 'Unexpected response.'
+ }catch(e){return`Connection error: ${e.message}`}
+}
+
+async function aiReq(label,prompt){
+ if(!S.ctx)return alert('먼저 분석을 실행하세요.');
+ addAI(label,'user');addLoad();
+ const r=await callAI(prompt+'\n\nANALYSIS DATA:\n'+S.ctx);rmLoad();if(r)addAI(r,'ai')
+}
+
+function aiMain(){aiReq('데이터 분석 결과 해석 요청','다음 제약 통계분석 결과를 3단계(한눈에 보는 결론/쉬운 해석/전문가 상세) 구조로 해석해주세요. GMP 규정 준수 여부를 판정하고, 부적합 시 필요 조치사항을 안내해주세요.')}
+function aiMV(){aiReq('Multi-Variable 분석 해석','다변량 분석 결과를 GMP 관점에서 해석해주세요.')}
+function aiTOST(){aiReq('TOST 동등성 시험 해석','TOST 동등성 시험 결과를 해석해주세요. 공정 이전, 장비 변경 등 밸리데이션 관점에서 판정해주세요.')}
+function aiAV(){aiReq('ANOVA 분석 해석','ANOVA 결과를 배치 간 일관성 관점에서 해석해주세요.')}
+function aiSPC(){aiReq('SPC 관리도 해석','SPC 관리도 분석(Nelson Rules 포함)을 해석해주세요. 공정 안정성과 이상 신호를 평가해주세요.')}
+function aiCPK(){aiReq('공정능력 분석 해석','공정능력(Cp/Cpk) 분석 결과를 해석해주세요. 밸리데이션 기준 충족 여부를 판정해주세요.')}
+function aiReg(){aiReq('회귀분석 해석','회귀분석 결과를 해석해주세요. 안정성 추세, 직선성, 캘리브레이션 관점에서 평가해주세요.')}
+
+async function chatSend(){
+ const inp=document.getElementById('aiInp'),msg=inp.value.trim();if(!msg)return;inp.value='';
+ addAI(msg,'user');addLoad();
+ const r=await callAI(`사용자 질문: ${msg}\n\n${S.ctx?'현재 분석 컨텍스트:\n'+S.ctx:'분석이 아직 실행되지 않았습니다.'}`);
+ rmLoad();if(r)addAI(r,'ai')
+}
+
+// ═══════════════════════════════════════════
+//  EXPORT FUNCTIONS (결과+AI해석 통합 다운로드)
+// ═══════════════════════════════════════════
+
+function getTS(){const d=new Date();return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`}
+function getFN(){return `EDA_분석보고서_${document.getElementById('dName').value.replace(/\s+/g,'_')}_${getTS()}`}
+
+function getAIText(){
+ return [...document.querySelectorAll('#aiMsgs .ai-m.ai')].map(m=>{
+  const clone=m.cloneNode(true);
+  clone.querySelectorAll('.mlbl').forEach(e=>e.remove());
+  return clone.innerText;
+ }).filter(t=>!t.includes('AI Assistant에 오신')).join('\n\n');
+}
+function getAIHTML(){
+ return [...document.querySelectorAll('#aiMsgs .ai-m.ai')].map(m=>{
+  const clone=m.cloneNode(true);
+  clone.querySelectorAll('.mlbl').forEach(e=>e.remove());
+  return clone.innerHTML;
+ }).filter(t=>!t.includes('AI Assistant에 오신')).join('<hr style="border:none;border-top:1px solid #ddd;margin:16px 0">');
+}
+
+function collectResults(){
+ const stats=document.getElementById('mainStats');
+ const gmp=document.getElementById('mainGMP');
+ const cards=[...stats.querySelectorAll('.sc')].map(c=>({label:(c.querySelector('.lb')?.innerText||'').replace('?','').trim(),value:c.querySelector('.vl')?.innerText||''}));
+ const gmpRows=[...gmp.querySelectorAll('.tb tbody tr')].map(tr=>[...tr.querySelectorAll('td')].map(td=>td.innerText));
+ const gmpHeaders=[...gmp.querySelectorAll('.tb thead th')].map(th=>th.innerText);
+ return{cards,gmpHeaders,gmpRows,sampleType:S.smp?S.specs[S.smp].nm:'미선택',dataName:document.getElementById('dName').value}
+}
+
+// ── shared HTML document builder ──
+function buildFullHTML(forPrint){
+ const el=document.getElementById('resultScroll');
+ if(!el||!el.innerHTML.trim())return null;
+ const aiHTML=getAIHTML();
+ const smpNm=S.smp?S.specs[S.smp].nm:'N/A';
+ const dNm=document.getElementById('dName').value;
+ const dt=new Date().toLocaleString('ko-KR');
+
+ return `<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>
+@page{size:A4;margin:20mm}
+body{font-family:'Malgun Gothic','맑은 고딕',sans-serif;font-size:10pt;color:#1a1a2e;padding:${forPrint?'0':'30px'};line-height:1.7;max-width:800px;margin:0 auto}
+h1{font-size:18pt;color:#0e1525;border-bottom:3px solid #2563eb;padding-bottom:8px;margin-bottom:6px}
+h2{font-size:14pt;color:#2563eb;margin:24px 0 10px;padding-bottom:4px;border-bottom:1px solid #dfe2e8}
+h3{font-size:12pt;color:#1e293b;margin:16px 0 8px}
+h4{font-size:11pt;color:#334155;margin:12px 0 6px}
+.meta{font-size:9pt;color:#64748b;margin-bottom:20px}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:9pt}
+th{background:#f1f5f9;padding:8px 10px;border:1px solid #dfe2e8;text-align:left;font-weight:700;color:#334155}
+td{padding:7px 10px;border:1px solid #dfe2e8;color:#1a1a2e}
+tr:nth-child(even){background:#f8f9fb}
+.pass{color:#0f8a4f;font-weight:bold}.fail{color:#c81e3a;font-weight:bold}.warn{color:#b45309;font-weight:bold}
+.banner{padding:14px 18px;border-radius:8px;margin:12px 0;font-weight:700;font-size:11pt}
+.banner-pass{background:#d1fae5;color:#065f46;border-left:5px solid #22c55e}
+.banner-fail{background:#fee2e8;color:#991b1b;border-left:5px solid #ef4444}
+.banner-warn{background:#fef3c7;color:#92400e;border-left:5px solid #f59e0b}
+.sec{background:#fff;border:1px solid #e8ebf0;border-radius:8px;padding:16px;margin:12px 0}
+.sec-hd{font-size:12pt;font-weight:700;margin-bottom:10px;border-bottom:1px solid #e8ebf0;padding-bottom:6px}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:8pt;font-weight:700}
+.tag-green{background:#d1fae5;color:#065f46}.tag-red{background:#fee2e8;color:#991b1b}
+.sg{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.sc{background:#f8f9fb;border:1px solid #e8ebf0;border-radius:6px;padding:10px;text-align:center;min-width:90px;flex:1}
+.sc .lb{font-size:8pt;color:#6e7489;text-transform:uppercase;margin-bottom:2px}
+.sc .vl{font-size:13pt;font-weight:700;color:#121520}
+.sc-p{border-color:#2563eb;background:#eff4ff}.sc-p .vl{color:#2563eb}
+.sc-g{border-color:#0f8a4f;background:#edfcf2}.sc-g .vl{color:#0f8a4f}
+.sc-r{border-color:#c81e3a;background:#fff0f2}.sc-r .vl{color:#c81e3a}
+.sc-a{border-color:#b45309;background:#fffbeb}.sc-a .vl{color:#b45309}
+.gref{background:#f1f5f9;padding:8px 12px;border-left:3px solid #94a3b8;margin:6px 0;font-size:9.5pt;color:#475569;border-radius:0 4px 4px 0}
+.ftag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:8pt;font-weight:700;color:#fff}
+.ftag-pass{background:#059669}.ftag-fail{background:#dc2626}.ftag-warn{background:#d97706}
+.ai-section{background:#f8f9fb;border:2px solid #2563eb;border-radius:8px;padding:20px;margin-top:24px}
+.ai-section h2{color:#2563eb;border-bottom:2px solid #2563eb;margin-top:0}
+.cw{page-break-inside:avoid}
+.no-print-chart img,.no-print-chart svg{max-width:100%;height:auto}
+hr{border:none;border-top:1px solid #dfe2e8;margin:16px 0}
+.footer{text-align:center;font-size:8pt;color:#94a3b8;margin-top:30px;padding-top:12px;border-top:1px solid #e8ebf0}
+</style></head><body>
+
+<h1>EDA - 탐색적 데이터 분석 보고서</h1>
+<div class="meta">
+<strong>시료 종류:</strong> ${smpNm} &nbsp;|&nbsp;
+<strong>데이터셋:</strong> ${dNm} &nbsp;|&nbsp;
+<strong>분석 일시:</strong> ${dt} &nbsp;|&nbsp;
+<strong>플랫폼:</strong> Exploratory Data Analysis v2.0
+</div>
+
+<h2>1. 분석 결과</h2>
+${el.innerHTML}
+
+${aiHTML?`
+<div class="ai-section">
+<h2>2. AI 해석 보고서</h2>
+<p style="font-size:9pt;color:#64748b;margin-bottom:12px">Claude AI 기반 GMP/ICH 규정 준수 자동 해석 결과</p>
+${aiHTML}
+</div>`:''}
+
+<div class="footer">
+본 보고서는 EDA (Exploratory Data Analysis) 플랫폼에서 자동 생성되었습니다.<br>
+분석 일시: ${dt} | 참고용 문서이며, 공식 GMP 문서로 사용 시 검토가 필요합니다.
+</div>
+
+</body></html>`;
+}
+
+// ── PDF Export (결과+AI 통합) ──
+async function exportPDF(){
+ const el=document.getElementById('resultScroll');
+ if(!el||!el.innerHTML.trim())return alert('먼저 분석을 실행하세요.');
+ const btn=event.target.closest('.ex-btn');const origHTML=btn.innerHTML;btn.textContent='생성 중...';btn.disabled=true;
+ try{
+  // Create a temp container with both results and AI
+  const tmp=document.createElement('div');
+  tmp.style.cssText='position:absolute;left:-9999px;top:0;width:900px;background:#fff;padding:24px;font-family:sans-serif;color:#1a1a2e';
+  // Title
+  tmp.innerHTML=`<div style="border-bottom:3px solid #2563eb;padding-bottom:8px;margin-bottom:12px">
+   <h1 style="font-size:20px;color:#0e1525;margin:0">EDA - 탐색적 데이터 분석 보고서</h1>
+   <p style="font-size:11px;color:#64748b;margin-top:4px">시료: ${S.smp?S.specs[S.smp].nm:'N/A'} | 데이터: ${document.getElementById('dName').value} | ${new Date().toLocaleString('ko-KR')}</p>
+  </div>
+  <h2 style="font-size:15px;color:#2563eb;margin:16px 0 8px">1. 분석 결과</h2>`;
+  tmp.innerHTML+=el.innerHTML;
+
+  // Add AI interpretation
+  const aiHTML=getAIHTML();
+  if(aiHTML){
+   tmp.innerHTML+=`<div style="background:#f8f9fb;border:2px solid #2563eb;border-radius:8px;padding:20px;margin-top:20px">
+    <h2 style="font-size:15px;color:#2563eb;margin:0 0 8px">2. AI 해석 보고서</h2>
+    <p style="font-size:10px;color:#64748b;margin-bottom:10px">Claude AI GMP/ICH 자동 해석</p>
+    <div style="font-size:12px;line-height:1.7;color:#334155">${aiHTML}</div>
+   </div>`;
+  }
+  tmp.innerHTML+=`<div style="text-align:center;font-size:9px;color:#94a3b8;margin-top:24px;padding-top:10px;border-top:1px solid #e8ebf0">EDA Platform 자동 생성 보고서 | ${new Date().toLocaleString('ko-KR')}</div>`;
+
+  document.body.appendChild(tmp);
+  const canvas=await html2canvas(tmp,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false});
+  document.body.removeChild(tmp);
+
+  const{jsPDF}=window.jspdf;
+  const pdf=new jsPDF('p','mm','a4');
+  const pw=pdf.internal.pageSize.getWidth()-16;
+  const ph=pdf.internal.pageSize.getHeight()-16;
+  const imgW=pw;
+  const imgH=(canvas.height*imgW)/canvas.width;
+
+  if(imgH<=ph){
+   pdf.addImage(canvas.toDataURL('image/png'),'PNG',8,8,imgW,imgH);
+  }else{
+   let srcY=0;const srcH=canvas.height;const pageH=ph/imgW*canvas.width;
+   while(srcY<srcH){
+    if(srcY>0)pdf.addPage();
+    const thisH=Math.min(pageH,srcH-srcY);
+    const pc=document.createElement('canvas');pc.width=canvas.width;pc.height=thisH;
+    pc.getContext('2d').drawImage(canvas,0,srcY,canvas.width,thisH,0,0,canvas.width,thisH);
+    pdf.addImage(pc.toDataURL('image/png'),'PNG',8,8,imgW,(thisH*imgW)/canvas.width);
+    srcY+=thisH;
+   }
+  }
+  pdf.save(getFN()+'.pdf');
+ }catch(e){alert('PDF 오류: '+e.message);console.error(e)}
+ finally{btn.innerHTML=origHTML;btn.disabled=false}
+}
+
+// ── Word Export (결과+AI 통합) ──
+function exportWord(){
+ const html=buildFullHTML(false);
+ if(!html)return alert('먼저 분석을 실행하세요.');
+ const blob=new Blob(['\ufeff'+html],{type:'application/msword;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=getFN()+'.doc';a.click();URL.revokeObjectURL(a.href);
+}
+
+// ── Excel Export (결과+AI 통합) ──
+function exportExcel(){
+ if(!S.ctx)return alert('먼저 분석을 실행하세요.');
+ const r=collectResults();
+ const aiText=getAIText();
+ const wb=XLSX.utils.book_new();
+
+ // Sheet 1: 분석 요약
+ const s1=[
+  ['EDA - 탐색적 데이터 분석 보고서'],
+  [''],
+  ['분석 일시',new Date().toLocaleString('ko-KR')],
+  ['시료 종류',r.sampleType],
+  ['데이터셋',r.dataName],
+  [''],
+  ['━━━ 기술통계량 ━━━'],
+  ['항목','값'],
+  ...r.cards.map(c=>[c.label,c.value]),
+  [''],
+  ['━━━ 분석 컨텍스트 ━━━'],
+  ...S.ctx.split('\n').map(l=>[l])
+ ];
+ const ws1=XLSX.utils.aoa_to_sheet(s1);
+ ws1['!cols']=[{wch:30},{wch:25}];
+ XLSX.utils.book_append_sheet(wb,ws1,'분석요약');
+
+ // Sheet 2: GMP 체크리스트
+ if(r.gmpHeaders.length){
+  const g=[r.gmpHeaders,...r.gmpRows];
+  const ws2=XLSX.utils.aoa_to_sheet(g);
+  ws2['!cols']=r.gmpHeaders.map(()=>({wch:24}));
+  XLSX.utils.book_append_sheet(wb,ws2,'GMP체크리스트');
+ }
+
+ // Sheet 3: 원시 데이터
+ const raw=P(document.getElementById('manData').value);
+ if(raw.length){
+  const ws3=XLSX.utils.aoa_to_sheet([['번호','측정값'],...raw.map((v,i)=>[i+1,v])]);
+  ws3['!cols']=[{wch:10},{wch:15}];
+  XLSX.utils.book_append_sheet(wb,ws3,'원시데이터');
+ }
+
+ // Sheet 4: AI 해석
+ if(aiText){
+  const ws4=XLSX.utils.aoa_to_sheet([
+   ['AI 해석 보고서'],
+   ['생성 일시: '+new Date().toLocaleString('ko-KR')],
+   ['시료: '+r.sampleType],
+   [''],
+   ...aiText.split('\n').map(l=>[l])
+  ]);
+  ws4['!cols']=[{wch:100}];
+  XLSX.utils.book_append_sheet(wb,ws4,'AI해석');
+ }
+
+ XLSX.writeFile(wb,getFN()+'.xlsx');
+}
+
+// ── PPT Export (결과+AI 통합) ──
+async function exportPPT(){
+ if(!S.ctx)return alert('먼저 분석을 실행하세요.');
+ const btn=event.target.closest('.ex-btn');const origHTML=btn.innerHTML;btn.textContent='생성 중...';btn.disabled=true;
+ try{
+  const r=collectResults();
+  const aiText=getAIText();
+  const pptx=new PptxGenJS();
+  pptx.layout='LAYOUT_WIDE';
+
+  // Slide 1: 표지
+  let sl=pptx.addSlide();
+  sl.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:'100%',fill:{color:'0E1525'}});
+  sl.addShape(pptx.ShapeType.rect,{x:0.8,y:3.0,w:3,h:0.04,fill:{color:'2563EB'}});
+  sl.addText('EDA\n탐색적 데이터 분석 보고서',{x:0.8,y:1.0,w:10,fontSize:34,color:'FFFFFF',fontFace:'Malgun Gothic',bold:true,lineSpacing:44});
+  sl.addText(`시료 종류: ${r.sampleType}\n데이터셋: ${r.dataName}\n분석 일시: ${new Date().toLocaleString('ko-KR')}`,{x:0.8,y:3.5,w:10,fontSize:13,color:'94A3B8',fontFace:'Malgun Gothic',lineSpacing:22});
+
+  // Slide 2: 기술통계
+  sl=pptx.addSlide();
+  sl.addText('기술통계량',{x:0.5,y:0.25,w:9,fontSize:22,color:'121520',bold:true,fontFace:'Malgun Gothic'});
+  sl.addShape(pptx.ShapeType.rect,{x:0.5,y:0.65,w:2.5,h:0.04,fill:{color:'2563EB'}});
+  const cols=Math.min(r.cards.length,6);
+  const cw=12.2/cols;
+  r.cards.slice(0,12).forEach((c,i)=>{
+   const row=Math.floor(i/6),col=i%6;
+   sl.addShape(pptx.ShapeType.rect,{x:0.3+col*(cw+0.08),y:1.0+row*1.3,w:cw,h:1.1,fill:{color:'F8F9FB'},line:{color:'E8EBF0',width:1},rectRadius:0.08});
+   sl.addText(c.label,{x:0.3+col*(cw+0.08),y:1.05+row*1.3,w:cw,h:0.35,fontSize:8,color:'6E7489',align:'center',fontFace:'Malgun Gothic',bold:true});
+   sl.addText(c.value,{x:0.3+col*(cw+0.08),y:1.4+row*1.3,w:cw,h:0.55,fontSize:17,color:'121520',align:'center',fontFace:'Malgun Gothic',bold:true});
+  });
+
+  // Slide 3: GMP 체크리스트
+  if(r.gmpHeaders.length&&r.gmpRows.length){
+   sl=pptx.addSlide();
+   sl.addText('GMP 규정 준수 체크리스트',{x:0.5,y:0.25,w:9,fontSize:22,color:'121520',bold:true,fontFace:'Malgun Gothic'});
+   sl.addShape(pptx.ShapeType.rect,{x:0.5,y:0.65,w:2.5,h:0.04,fill:{color:'2563EB'}});
+   const tblR=[r.gmpHeaders.map(h=>({text:h,options:{fontSize:8,bold:true,color:'334155',fill:{color:'F1F5F9'}}}))];
+   r.gmpRows.forEach(row=>{tblR.push(row.map((cell,ci)=>{
+    const isLast=ci===row.length-1;const pass=cell.includes('PASS');
+    return{text:cell,options:{fontSize:8,color:isLast?(pass?'0F8A4F':'C81E3A'):'334155',bold:isLast}};
+   }))});
+   sl.addTable(tblR,{x:0.3,y:0.9,w:12.5,fontSize:8,border:{type:'solid',pt:0.5,color:'DFE2E8'},colW:[3,2.5,2,2.5,1.5]});
+  }
+
+  // Slide 4: 차트 캡처
+  const chartEl=document.getElementById('mainCharts');
+  if(chartEl&&chartEl.innerHTML.trim()){
+   const canvas=await html2canvas(chartEl,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false});
+   sl=pptx.addSlide();
+   sl.addText('분석 차트',{x:0.5,y:0.25,w:9,fontSize:22,color:'121520',bold:true,fontFace:'Malgun Gothic'});
+   sl.addImage({data:canvas.toDataURL('image/png'),x:0.2,y:0.8,w:12.7,h:6.2,sizing:{type:'contain',w:12.7,h:6.2}});
+  }
+
+  // Slide 5: AI 해석
+  if(aiText&&!aiText.includes('AI Assistant에 오신')){
+   sl=pptx.addSlide();
+   sl.addText('AI 해석 보고서',{x:0.5,y:0.25,w:9,fontSize:22,color:'121520',bold:true,fontFace:'Malgun Gothic'});
+   sl.addShape(pptx.ShapeType.rect,{x:0.5,y:0.65,w:2.5,h:0.04,fill:{color:'7C3AED'}});
+   sl.addText('Claude AI 기반 GMP/ICH 자동 해석',{x:0.5,y:0.75,w:10,fontSize:10,color:'64748B',fontFace:'Malgun Gothic'});
+   const trimmed=aiText.substring(0,3000);
+   sl.addText(trimmed,{x:0.3,y:1.1,w:12.5,h:5.8,fontSize:9,color:'334155',fontFace:'Malgun Gothic',lineSpacing:15,valign:'top',wrap:true});
+  }
+
+  pptx.writeFile({fileName:getFN()+'.pptx'});
+ }catch(e){alert('PPT 오류: '+e.message);console.error(e)}
+ finally{btn.innerHTML=origHTML;btn.disabled=false}
+}
+
+// INIT
+window.onload=function(){
+ addV();addV();
+ const k=localStorage.getItem('edaKey');if(k)document.getElementById('apiKey').value=k;
+};
+</script>
+</body>
+</html>
